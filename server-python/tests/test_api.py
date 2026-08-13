@@ -52,3 +52,20 @@ def test_generate_audio():
     assert len(lines) == len(script["lines"])
     for line in lines:
         assert "audio_url" in line
+
+
+def test_news_latest_requires_key():
+    r = client.get("/api/v1/news/latest")
+    assert r.status_code == 401
+
+
+def test_news_latest_ok():
+    r = client.get("/api/v1/news/latest", headers=AUTH)
+    assert r.status_code == 200
+    assert "articles" in r.json()
+
+
+def test_news_refresh_ok():
+    r = client.post("/api/v1/news/refresh", headers=AUTH)
+    assert r.status_code == 200
+    assert "scripts" in r.json()

@@ -50,6 +50,10 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
 
+    # External news / weather
+    news_api_key: str = ""
+    openweather_api_key: str = ""
+
     # Storage
     storage_backend: str = "local"
     storage_local_path: str = str(PROJECT_ROOT / "server-python" / "storage")
