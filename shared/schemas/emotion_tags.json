@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casuya.dev/schemas/emotion_tags.json",
+  "title": "Emotion Tag Registry",
+  "description": "Official list of emotion performance tags used in dialogue lines. Tags are in Swahili (lowercase, snake_case). Client maps these to voice/face/animation parameters.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["tag", "description", "energy", "voice_style"],
+    "properties": {
+      "tag": {
+        "type": "string",
+        "examples": ["anacheka_kwa_dharau"]
+      },
+      "description": { "type": "string" },
+      "energy": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 10,
+        "description": "0 = very calm, 10 = very intense."
+      },
+      "voice_style": {
+        "type": "string",
+        "enum": ["normal", "whisper", "excited", "sad", "angry", "mocking", "flat"]
+      }
+    }
+  },
+  "examples": [
+    { "tag": "anaongea_kwa_huzuni", "description": "Speaking sadly", "energy": 2, "voice_style": "sad" },
+    { "tag": "anacheka_kwa_dharau", "description": "Laughing scornfully", "energy": 7, "voice_style": "mocking" },
+    { "tag": "anapiga_kelele", "description": "Shouting", "energy": 9, "voice_style": "excited" },
+    { "tag": "anaongea_kwa_utulivu", "description": "Speaking calmly", "energy": 1, "voice_style": "normal" },
+    { "tag": "anashangaa", "description": "Surprised", "energy": 8, "voice_style": "excited" },
+    { "tag": "anafikiria", "description": "Thinking aloud", "energy": 1, "voice_style": "whisper" },
+    { "tag": "anakasirika", "description": "Angry", "energy": 9, "voice_style": "angry" },
+    { "tag": "anahofia", "description": "Afraid", "energy": 6, "voice_style": "whisper" },
+    { "tag": "anasikitika", "description": "Regretful", "energy": 3, "voice_style": "sad" },
+    { "tag": "anajigamba", "description": "Boasting", "energy": 6, "voice_style": "excited" },
+    { "tag": "anadhihaki", "description": "Sarcastic/teasing", "energy": 5, "voice_style": "mocking" },
+    { "tag": "anaomba_msaada", "description": "Pleading", "energy": 4, "voice_style": "whisper" }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casuya.dev/schemas/character_id_map.json",
+  "title": "Character ID Map",
+  "description": "Maps stable character IDs to display names and provider voice IDs. This file is the source of truth for cast identity shared between server and client.",
+  "type": "object",
+  "required": ["version", "characters"],
+  "properties": {
+    "version": { "type": "string", "const": "1.0" },
+    "characters": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/character"
+      }
+    }
+  },
+  "$defs": {
+    "character": {
+      "type": "object",
+      "required": ["id", "name", "voice_id", "mood_base", "bio"],
+      "properties": {
+        "id": { "type": "string", "examples": ["char_bibi_mkwe"] },
+        "name": { "type": "string", "examples": ["Bibi Mkwe"] },
+        "voice_id": {
+          "type": "string",
+          "description": "Provider voice ID. For Google Cloud use the full voice name like 'sw-SW-Standard-A'."
+        },
+        "mood_base": {
+          "type": "string",
+          "enum": ["uchangamfu", "hasira", "huzuni", "utulivu", "msisimko"],
+          "description": "Default personality baseline before mood drift is applied."
+        },
+        "bio": { "type": "string" }
+      }
+    }
+  }
+}

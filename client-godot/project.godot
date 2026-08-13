@@ -1,0 +1,25 @@
+; Engine configuration file.
+; Casuya Social News — Godot client
+
+config_version=5
+
+[application]
+
+config/name="Casuya Social News"
+config/description="Real-time Swahili social news drama"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.3")
+
+[autoload]
+
+Network="*res://autoload/NetworkManager.gd"
+
+[display]
+
+window/size/viewport_width=360
+window/size/viewport_height=640
+window/stretch/mode="canvas_items"
+
+[rendering]
+
+renderer/rendering_method="mobile"

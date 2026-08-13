@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casuya.dev/schemas/script_schema.json",
+  "title": "Casuya Social News — Script Schema",
+  "description": "JSON contract between server (Python) and client (Godot). A script is a dramatic scene generated from a news article, performed by characters with emotion tags.",
+  "type": "object",
+  "required": ["version", "script_id", "news_ref", "characters", "lines", "metadata"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "script_id": {
+      "type": "string",
+      "description": "Unique ID for this script (UUID)."
+    },
+    "news_ref": {
+      "$ref": "#/$defs/news_ref"
+    },
+    "characters": {
+      "type": "array",
+      "description": "Characters appearing in this script.",
+      "items": {
+        "$ref": "#/$defs/character"
+      },
+      "minItems": 1
+    },
+    "lines": {
+      "type": "array",
+      "description": "Dialogue lines in playback order.",
+      "items": {
+        "$ref": "#/$defs/dialogue_line"
+      },
+      "minItems": 1
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    }
+  },
+  "$defs": {
+    "news_ref": {
+      "type": "object",
+      "description": "Reference to the source news article.",
+      "required": ["headline", "source", "published_at", "url"],
+      "properties": {
+        "headline": { "type": "string" },
+        "source": { "type": "string" },
+        "published_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "url": { "type": "string" }
+      }
+    },
+    "character": {
+      "type": "object",
+      "description": "A character in the scene.",
+      "required": ["id", "name", "voice_id"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "voice_id": {
+          "type": "string",
+          "description": "Provider-specific voice identifier."
+        },
+        "mood": {
+          "type": "string",
+          "description": "Current mood driving delivery.",
+          "examples": ["uchangamfu", "hasira", "huzuni", "utulivu", "msisimko"]
+        }
+      }
+    },
+    "dialogue_line": {
+      "type": "object",
+      "description": "One spoken line with performance instructions.",
+      "required": ["index", "character_id", "text", "emotion"],
+      "properties": {
+        "index": { "type": "integer" },
+        "character_id": { "type": "string" },
+        "text": { "type": "string" },
+        "emotion": {
+          "$ref": "#/$defs/emotion_tag"
+        },
+        "overlap": {
+          "type": "boolean",
+          "default": false,
+          "description": "True if this line overlaps with the previous line (Feature #6)."
+        },
+        "audio_url": {
+          "type": ["string", "null"],
+          "description": "Populated by the server after synthesis."
+        }
+      }
+    },
+    "emotion_tag": {
+      "type": "string",
+      "description": "Emotion performance tag. See shared/schemas/emotion_tags.json for the full registry.",
+      "examples": ["anacheka_kwa_dharau", "anaongea_kwa_huzuni", "anapiga_kelele"]
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Scene-level metadata.",
+      "required": ["generated_at", "time_of_day", "mood_drift_applied"],
+      "properties": {
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "time_of_day": {
+          "type": "string",
+          "enum": ["asubuhi", "mchana", "usiku"],
+          "description": "Determines which prompt template was used."
+        },
+        "mood_drift_applied": {
+          "type": "boolean",
+          "description": "Whether diurnal mood drift (Feature #22) was applied."
+        },
+        "characters_delta": {
+          "type": ["integer", "null"],
+          "description": "Number of delta updates pushed via WebSocket (Feature #27)."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casuya.dev/schemas/api_response.json",
+  "title": "Standard API Response Envelope",
+  "description": "Every API endpoint returns this envelope. Error codes come from the taxonomy in the README (E1001-E5002).",
+  "type": "object",
+  "required": ["success", "status_code", "message", "data"],
+  "properties": {
+    "success": {
+      "type": "boolean",
+      "description": "True for 2xx responses, false otherwise."
+    },
+    "status_code": {
+      "type": "integer",
+      "examples": [200, 201, 400, 401, 404, 500]
+    },
+    "message": {
+      "type": "string",
+      "description": "Human-readable message."
+    },
+    "error_code": {
+      "type": ["string", "null"],
+      "description": "Machine-readable error code (E1001-E5002). Null on success.",
+      "examples": ["E2001", "E4001"]
+    },
+    "request_id": {
+      "type": ["string", "null"],
+      "description": "Correlates a response to its request log entry."
+    },
+    "data": {
+      "description": "Endpoint-specific payload. Null on error.",
+      "type": ["object", "array", "null"]
+    }
+  },
+  "examples": [
+    {
+      "success": true,
+      "status_code": 200,
+      "message": "Script generated successfully",
+      "error_code": null,
+      "request_id": "req_abc123",
+      "data": { "script_id": "00000000-0000-0000-0000-000000000000" }
+    },
+    {
+      "success": false,
+      "status_code": 503,
+      "message": "TTS provider API down",
+      "error_code": "E2001",
+      "request_id": "req_abc123",
+      "data": null
+    }
+  ]
+}

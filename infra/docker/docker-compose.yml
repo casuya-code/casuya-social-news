@@ -1,0 +1,37 @@
+# Casuya Social News — infrastructure
+# Usage: docker compose up -d postgres redis
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: casuya-postgres
+    environment:
+      POSTGRES_USER: casuya_user
+      POSTGRES_PASSWORD: casuya_password
+      POSTGRES_DB: casuya_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U casuya_user -d casuya_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: casuya-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:

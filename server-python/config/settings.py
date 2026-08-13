@@ -1,0 +1,77 @@
+"""Application configuration loaded from environment variables."""
+
+from functools import lru_cache
+from pathlib import Path
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Project root is the parent of the server-python directory.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+SHARED_SCHEMAS_DIR = PROJECT_ROOT / "shared" / "schemas"
+
+
+class Settings(BaseSettings):
+    """Central configuration. Values come from .env / environment."""
+
+    model_config = SettingsConfigDict(
+        env_file=PROJECT_ROOT / "server-python" / ".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    # App
+    app_env: str = "development"
+    app_debug: bool = True
+    app_port: int = 8000
+    app_secret_key: str = "change-me"
+
+    # Database (PostgreSQL)
+    database_url: str = "postgresql+asyncpg://casuya_user:password@localhost:5432/casuya_db"
+    database_pool_size: int = 20
+    database_max_overflow: int = 10
+
+    # Redis (optional)
+    redis_url: str = "redis://localhost:6379/0"
+
+    # Auth
+    jwt_secret_key: str = "change-me"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 1440
+    jwt_refresh_token_expire_days: int = 30
+    api_key: str = "dev-api-key"
+
+    # TTS
+    tts_provider: str = "mock"  # mock | google_cloud | elevenlabs
+    google_cloud_project: str = ""
+    elevenlabs_api_key: str = ""
+    elevenlabs_monthly_budget_usd: float = 50.0
+
+    # OpenAI
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o-mini"
+
+    # Storage
+    storage_backend: str = "local"
+    storage_local_path: str = str(PROJECT_ROOT / "server-python" / "storage")
+    cdn_base_url: str = "http://localhost:8000/storage"
+
+    # Rate limiting
+    rate_limit_api: str = "60/minute"
+    rate_limit_voice: str = "5/minute"
+
+    # Logging
+    log_level: str = "INFO"
+    log_format: str = "json"
+
+    @property
+    def storage_dir(self) -> Path:
+        """Return the local storage directory, creating it if needed."""
+        path = Path(self.storage_local_path)
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Return a cached Settings instance (avoids re-reading .env)."""
+    return Settings()
