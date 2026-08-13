@@ -12,8 +12,10 @@ from datetime import UTC, datetime
 from cache.redis_client import cache
 from config.logging_config import get_logger
 from database.engine import SessionLocal
-from database.models import NewsArticle
+from database.models import MemoryEvent, NewsArticle
+from nlp.character_state import load_states, set_states
 from nlp.contextualizer import contextualize
+from nlp.memory import apply_drift, summarize_script
 from scraper.dedupe import url_fingerprint
 from scraper.news_api_client import NewsApiClient
 from scraper.seen_store import load_seen, save_seen
@@ -91,11 +93,55 @@ async def ingest(fetcher=None, limit: int = 10) -> list[dict]:
 
 
 async def ingest_and_generate(fetcher=None, limit: int = 10) -> list[dict]:
-    """Ingest new articles and generate a script for each. Returns scripts."""
+    """Ingest new articles and generate a script for each. Returns scripts.
+
+    Character memory + mood drift (Features #22/#25) are loaded before
+    generation and updated after, so each story builds on the last.
+    """
     fresh = await ingest(fetcher, limit)
-    scripts = [contextualize(article) for article in fresh]
-    _logger.info("generated_scripts", count=len(scripts))
+    states = load_states()
+
+    scripts: list[dict] = []
+    for article in fresh:
+        script = contextualize(article, states)
+        scripts.append(script)
+        _update_states(states, summarize_script(script))
+        await _persist_memory(script)
+
+    set_states(states)
+    _logger.info("generated_scripts", count=len(scripts), active_casts=len(states))
     return scripts
+
+
+def _update_states(states: dict[str, dict], updates: dict[str, dict]) -> None:
+    """Merge per-script memory summaries into the running state."""
+    for char_id, update in updates.items():
+        previous = states.get(char_id, {"memory": "", "mood": 0.0})
+        states[char_id] = {
+            "memory": update["memory"],
+            "mood": apply_drift(previous.get("mood", 0.0), update["mood"]),
+        }
+
+
+async def _persist_memory(script: dict) -> None:
+    """Best-effort DB write of MemoryEvent rows + Character mood_drift."""
+    try:
+        async with SessionLocal() as session:
+            for line in script.get("lines", []):
+                char_id = line.get("character_id", "")
+                if not char_id:
+                    continue
+                session.add(
+                    MemoryEvent(
+                        character_id=char_id,
+                        script_id=script["script_id"],
+                        summary=script.get("news_ref", {}).get("headline", ""),
+                        emotion=line.get("emotion", ""),
+                    )
+                )
+            await session.commit()
+    except Exception as exc:  # noqa: BLE001
+        _logger.warning("memory_persist_failed", error=str(exc))
 
 
 async def _persist_articles(articles: list[dict]) -> None:

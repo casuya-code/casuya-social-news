@@ -3,15 +3,17 @@
 import pytest
 
 from cache.redis_client import MemoryCache
+from nlp import character_state
 from scraper import seen_store
-from scraper.ingestor import ingest, normalize_article
+from scraper.ingestor import ingest, ingest_and_generate, normalize_article
 from scraper.mock_feed import MockFeed
 
 
 @pytest.fixture
 def isolated_state(tmp_path, monkeypatch):
-    """Isolate both durable stores so tests don't pollute each other."""
+    """Isolate durable stores so tests don't pollute each other."""
     monkeypatch.setattr(seen_store, "seen_store_path", lambda: tmp_path / "seen_urls.json")
+    monkeypatch.setattr(character_state, "state_path", lambda: tmp_path / "character_state.json")
     monkeypatch.setattr("scraper.ingestor.cache", MemoryCache())
     yield
 
@@ -34,6 +36,19 @@ async def test_ingest_dedupes_between_runs(isolated_state):
     assert len(first) > 0
     second = await ingest(fetcher=feed, limit=10)
     assert len(second) == 0  # all URLs already seen
+
+
+@pytest.mark.asyncio
+async def test_ingest_and_generate_builds_character_memory(isolated_state):
+    feed = MockFeed()
+    scripts = await ingest_and_generate(fetcher=feed, limit=10)
+    assert len(scripts) == 4  # mock feed has 4 unique stories
+    # Characters that spoke now have persisted state.
+    states = character_state.load_states()
+    assert len(states) >= 1
+    for entry in states.values():
+        assert "memory" in entry
+        assert "mood" in entry
 
 
 def test_normalize_article_newsapi_shape():
