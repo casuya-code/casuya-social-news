@@ -9,6 +9,19 @@ from nlp.contextualizer import _CLOSINGS_BY_DIRECTION
 from scraper import seen_store
 from scraper.ingestor import ingest, ingest_and_generate, normalize_article
 from scraper.mock_feed import MockFeed
+from weather_sync.meteorological_feed import MockWeatherFeed
+
+
+class _StormFeed(MockWeatherFeed):
+    async def fetch(self, location: str | None = None) -> dict:
+        return {
+            "location": location or "Dar es Salaam",
+            "condition": "dhoruba",
+            "mood_offset": -0.4,
+            "time_of_day": "mchana",
+            "source": "mock",
+            "captured_at": "2026-08-13T12:00:00Z",
+        }
 
 
 @pytest.fixture
@@ -71,6 +84,31 @@ async def test_ingest_steered_by_community_pulse(isolated_state, isolated_votes)
     msisimko_closings = _CLOSINGS_BY_DIRECTION["msisimko"]
     for script in scripts:
         assert script["lines"][2]["text"] in msisimko_closings
+
+
+@pytest.mark.asyncio
+async def test_ingest_applies_weather_bias(isolated_state, monkeypatch):
+    """Feature #30: storm weather must be tagged on every generated script."""
+    monkeypatch.setattr("scraper.ingestor.get_weather_feed", lambda: _StormFeed())
+    feed = MockFeed()
+    scripts = await ingest_and_generate(fetcher=feed, limit=10)
+    assert len(scripts) == 4
+    for script in scripts:
+        assert script["metadata"]["weather"]["condition"] == "dhoruba"
+        assert script["metadata"]["weather"]["mood_offset"] < 0
+
+
+def test_apply_weather_bias_shifts_existing_moods(isolated_state):
+    """Feature #30: bias moves every known character's mood by the offset."""
+    from scraper.ingestor import _apply_weather_bias
+
+    states = {
+        "char_a": {"memory": "x", "mood": 0.5},
+        "char_b": {"memory": "", "mood": -0.2},
+    }
+    _apply_weather_bias(states, -0.4)
+    assert states["char_a"]["mood"] == pytest.approx(0.1)
+    assert states["char_b"]["mood"] == pytest.approx(-0.6)
 
 
 def test_normalize_article_newsapi_shape():

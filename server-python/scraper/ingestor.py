@@ -21,6 +21,7 @@ from nlp.memory import apply_drift, summarize_script
 from scraper.dedupe import url_fingerprint
 from scraper.news_api_client import NewsApiClient
 from scraper.seen_store import load_seen, save_seen
+from weather_sync.meteorological_feed import get_weather_feed, mood_offset
 
 _logger = get_logger("scraper.ingestor")
 
@@ -99,16 +100,24 @@ async def ingest_and_generate(fetcher=None, limit: int = 10) -> list[dict]:
 
     Character memory + mood drift (Features #22/#25) are loaded before
     generation and updated after, so each story builds on the last. The
-    community's latest vote steers the tone of the batch (Feature #35).
+    community's latest vote steers the tone of the batch (Feature #35) and
+    current weather biases the cast's moods (Feature #30).
     """
     fresh = await ingest(fetcher, limit)
     states = load_states()
     pulse = community_pulse()
     _logger.info("community_pulse", direction=pulse)
 
+    weather = await get_weather_feed().fetch()
+    offset = mood_offset(weather.get("condition", ""))
+    if offset:
+        _apply_weather_bias(states, offset)
+    _logger.info("weather_bias", condition=weather.get("condition"), offset=offset)
+
     scripts: list[dict] = []
     for article in fresh:
         script = contextualize(article, states, direction=pulse)
+        script["metadata"]["weather"] = weather
         scripts.append(script)
         await broadcast_script(script, states)
         _update_states(states, summarize_script(script))
@@ -117,6 +126,12 @@ async def ingest_and_generate(fetcher=None, limit: int = 10) -> list[dict]:
     set_states(states)
     _logger.info("generated_scripts", count=len(scripts), active_casts=len(states))
     return scripts
+
+
+def _apply_weather_bias(states: dict[str, dict], offset: float) -> None:
+    """Shift every cast member's mood by the weather offset (Feature #30)."""
+    for state in states.values():
+        state["mood"] = round(apply_drift(state.get("mood", 0.0), offset), 3)
 
 
 def _update_states(states: dict[str, dict], updates: dict[str, dict]) -> None:
