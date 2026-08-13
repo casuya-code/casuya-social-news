@@ -14,6 +14,7 @@ from cache.redis_client import cache
 from config.logging_config import get_logger
 from database.engine import SessionLocal
 from database.models import MemoryEvent, NewsArticle
+from economy.vote_service import community_pulse
 from nlp.character_state import load_states, set_states
 from nlp.contextualizer import contextualize
 from nlp.memory import apply_drift, summarize_script
@@ -97,14 +98,17 @@ async def ingest_and_generate(fetcher=None, limit: int = 10) -> list[dict]:
     """Ingest new articles and generate a script for each. Returns scripts.
 
     Character memory + mood drift (Features #22/#25) are loaded before
-    generation and updated after, so each story builds on the last.
+    generation and updated after, so each story builds on the last. The
+    community's latest vote steers the tone of the batch (Feature #35).
     """
     fresh = await ingest(fetcher, limit)
     states = load_states()
+    pulse = community_pulse()
+    _logger.info("community_pulse", direction=pulse)
 
     scripts: list[dict] = []
     for article in fresh:
-        script = contextualize(article, states)
+        script = contextualize(article, states, direction=pulse)
         scripts.append(script)
         await broadcast_script(script, states)
         _update_states(states, summarize_script(script))

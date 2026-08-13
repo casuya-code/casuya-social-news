@@ -59,6 +59,19 @@ def resolve_direction(script_id: str) -> str:
     return max(counts, key=counts.get)
 
 
+def community_pulse() -> str:
+    """Steering signal for the next batch of stories.
+
+    The most recently voted script's winning direction becomes the tone for
+    upcoming generated drama. Neutral default until the community votes.
+    """
+    votes = load_votes()
+    if not votes:
+        return DEFAULT_DIRECTION
+    latest_script_id = next(reversed(votes))
+    return resolve_direction(latest_script_id)
+
+
 def client_influence(client_id: str) -> int:
     """Number of distinct scripts a client has voted on (engagement metric)."""
     votes = load_votes()

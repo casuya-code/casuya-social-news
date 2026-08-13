@@ -7,6 +7,7 @@ from economy.vote_service import (
     DEFAULT_DIRECTION,
     InvalidDirectionError,
     client_influence,
+    community_pulse,
     record_vote,
     resolve_direction,
     tally,
@@ -53,6 +54,15 @@ def test_repeat_vote_is_not_counted(clean_votes):
 def test_default_direction_when_no_votes(clean_votes):
     assert resolve_direction("script-ghost") == DEFAULT_DIRECTION
     assert tally("script-ghost") == {d: 0 for d in ALLOWED_DIRECTIONS}
+
+
+def test_community_pulse_follows_latest_voted_script(clean_votes):
+    assert community_pulse() == DEFAULT_DIRECTION
+    record_vote("script-1", "client-a", "furaha")
+    assert community_pulse() == "furaha"
+    record_vote("script-2", "client-a", "msisimko")
+    record_vote("script-2", "client-b", "msisimko")
+    assert community_pulse() == "msisimko"
 
 
 def test_rejects_unknown_direction(clean_votes):

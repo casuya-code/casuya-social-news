@@ -3,7 +3,9 @@
 import pytest
 
 from cache.redis_client import MemoryCache
+from economy import vote_service
 from nlp import character_state
+from nlp.contextualizer import _CLOSINGS_BY_DIRECTION
 from scraper import seen_store
 from scraper.ingestor import ingest, ingest_and_generate, normalize_article
 from scraper.mock_feed import MockFeed
@@ -16,6 +18,14 @@ def isolated_state(tmp_path, monkeypatch):
     monkeypatch.setattr(character_state, "state_path", lambda: tmp_path / "character_state.json")
     monkeypatch.setattr("scraper.ingestor.cache", MemoryCache())
     yield
+
+
+@pytest.fixture
+def isolated_votes(tmp_path, monkeypatch):
+    """Point the vote store at a throwaway file."""
+    target = tmp_path / "votes.json"
+    monkeypatch.setattr("economy.vote_store.votes_path", lambda: target)
+    yield target
 
 
 @pytest.mark.asyncio
@@ -49,6 +59,18 @@ async def test_ingest_and_generate_builds_character_memory(isolated_state):
     for entry in states.values():
         assert "memory" in entry
         assert "mood" in entry
+
+
+@pytest.mark.asyncio
+async def test_ingest_steered_by_community_pulse(isolated_state, isolated_votes):
+    """Feature #35: the last vote's direction tones the generated closings."""
+    vote_service.record_vote("script-pulse", "client-a", "msisimko")
+    feed = MockFeed()
+    scripts = await ingest_and_generate(fetcher=feed, limit=10)
+    assert len(scripts) == 4
+    msisimko_closings = _CLOSINGS_BY_DIRECTION["msisimko"]
+    for script in scripts:
+        assert script["lines"][2]["text"] in msisimko_closings
 
 
 def test_normalize_article_newsapi_shape():
