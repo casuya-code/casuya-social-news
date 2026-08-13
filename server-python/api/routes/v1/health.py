@@ -5,12 +5,13 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 
-from api.errors import DatabaseError
+from api.errors import DatabaseError  # noqa: F401  (imported for taxonomy docs)
 from cache.redis_client import cache
 from config.logging_config import get_logger
 from config.settings import get_settings
 from database.engine import SessionLocal
 from security.api_key_auth import verify_api_key
+from voice.breaker_tts_provider import get_breaker_circuit
 from voice.tts_provider import get_provider
 
 _logger = get_logger("api.health")
@@ -21,7 +22,11 @@ router = APIRouter()
 
 @router.get("/health")
 async def health_check(_: str = Depends(verify_api_key)) -> dict:
-    """Liveness + readiness probe: DB, cache, and TTS provider."""
+    """Liveness + readiness probe: DB, cache, and TTS provider.
+
+    Reports every dependency individually; overall status is "ok" only when
+    all are healthy. Never raises — health endpoints must be informative.
+    """
     status = {"status": "ok", "dependencies": {}}
 
     # Database
@@ -32,7 +37,6 @@ async def health_check(_: str = Depends(verify_api_key)) -> dict:
     except Exception as exc:  # noqa: BLE001
         _logger.error("db_health_failed", error=str(exc))
         status["dependencies"]["database"] = "down"
-        raise DatabaseError("Database unreachable") from exc
 
     # Cache
     try:
@@ -51,5 +55,9 @@ async def health_check(_: str = Depends(verify_api_key)) -> dict:
         _logger.error("tts_health_failed", error=str(exc))
         status["dependencies"]["tts"] = "down"
 
+    if any(dep != "ok" for dep in status["dependencies"].values()):
+        status["status"] = "degraded"
+
+    status["circuit"] = get_breaker_circuit().snapshot()
     status["app_env"] = _settings.app_env
     return status

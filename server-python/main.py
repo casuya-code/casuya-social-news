@@ -12,6 +12,7 @@ from api.handlers import register_exception_handlers
 from api.routes.v1.router import api_v1_router
 from config.logging_config import setup_logging
 from config.settings import get_settings
+from middleware.rate_limiter import RateLimiterMiddleware
 from middleware.request_id import RequestIDMiddleware
 
 setup_logging()
@@ -35,6 +36,7 @@ app = FastAPI(
 )
 
 register_exception_handlers(app)
+app.add_middleware(RateLimiterMiddleware)
 app.add_middleware(RequestIDMiddleware)
 
 # Serve synthesized audio from local storage.

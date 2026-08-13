@@ -30,16 +30,18 @@ class TTSProvider(ABC):
 
 
 def get_provider() -> TTSProvider:
-    """Factory returning the configured provider (cached at module level)."""
+    """Factory returning the configured provider, wrapped in the breaker proxy."""
+    from voice.breaker_tts_provider import BreakerTTSProxy
+
     provider_name = _settings.tts_provider
     if provider_name == "elevenlabs":
         from voice.elevenlabs_client import ElevenLabsProvider
 
-        return ElevenLabsProvider()
+        return BreakerTTSProxy(ElevenLabsProvider())
     if provider_name == "google_cloud":
         from voice.google_cloud_client import GoogleCloudProvider
 
-        return GoogleCloudProvider()
+        return BreakerTTSProxy(GoogleCloudProvider())
     from voice.mock_provider import MockProvider
 
-    return MockProvider()
+    return BreakerTTSProxy(MockProvider())
