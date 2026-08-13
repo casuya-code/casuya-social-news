@@ -1,0 +1,54 @@
+# Casuya Social News — Server Dependencies
+# Python >= 3.12 required
+
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.18
+
+# Database
+sqlalchemy==2.0.36
+asyncpg==0.30.0              # PostgreSQL async driver
+alembic==1.14.1              # Database migrations
+
+# Caching (optional — falls back to in-memory if Redis unavailable)
+redis==5.2.1
+
+# Task queue
+celery[redis]==5.4.0
+
+# HTTP client (for external APIs)
+httpx==0.28.1
+
+# Auth
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Validation
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# Environment
+python-dotenv==1.0.1
+
+# NLP / AI
+openai==1.58.1              # For GPT-based script generation (alternative to direct API)
+
+# Voice
+elevenlabs==1.90.0          # ElevenLabs TTS API
+
+# Monitoring
+prometheus-client==0.21.1
+
+# Logging
+structlog==24.4.0           # Structured JSON logging
+
+# Utilities
+orjson==3.10.13             # Fast JSON serialization
+python-dateutil==2.9.0
+
+# Development / Testing
+pytest==8.3.4
+pytest-asyncio==0.25.0
+httpx==0.28.1               # For testing HTTP endpoints
+ruff==0.8.6                 # Linter + formatter

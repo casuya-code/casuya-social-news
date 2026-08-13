@@ -1,0 +1,43 @@
+# =============================================================================
+# Casuya Social News — .gitattributes
+# =============================================================================
+
+# Normalize line endings
+* text=auto eol=lf
+
+# Specific file types
+*.py     text eol=lf
+*.gd     text eol=lf
+*.gdshader text eol=lf
+*.sh     text eol=lf
+*.json   text eol=lf
+*.md     text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.txt    text eol=lf
+*.tres   text eol=lf
+*.tscn   text eol=lf
+*.cfg    text eol=lf
+
+# Binary files
+*.mp3    binary
+*.wav    binary
+*.ogg    binary
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.webp   binary
+*.ico    binary
+*.ttf    binary
+
+# Linguist overrides (so Godot + Python aren't miscounted)
+*.gd     linguist-language=GDScript
+*.gdshader linguist-language=GLSL
+*.py     linguist-language=Python
+
+# Git diff drivers
+*.json   diff=json
+*.py     diff=python
+
+# Lock files
+*.lock   -diff
