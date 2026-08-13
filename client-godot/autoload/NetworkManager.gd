@@ -8,6 +8,7 @@ extends Node
 ##  - Offline detection and queued retries (Feature: OfflineDetector)
 
 signal script_loaded(script: Dictionary)
+signal news_loaded(scripts: Array)
 signal script_failed(message: String)
 signal audio_ready(line_index: int, audio: AudioStream)
 signal offline_status_changed(is_offline: bool)
@@ -64,6 +65,18 @@ func generate_audio(script: Dictionary) -> void:
 		script_failed.emit("Audio request failed to start (code %d)" % err)
 
 
+## Pull fresh news and generate a script for each new story ("endless loop").
+func refresh_news() -> void:
+	var headers := _auth_headers(false)
+	var err := _http.request(
+		base_url + API_PREFIX + "/news/refresh",
+		headers,
+		HTTPClient.METHOD_POST
+	)
+	if err != OK:
+		script_failed.emit("News refresh failed to start (code %d)" % err)
+
+
 func _auth_headers(is_json: bool) -> PackedStringArray:
 	var headers := PackedStringArray()
 	headers.append("X-API-Key: %s" % api_key)
@@ -92,6 +105,8 @@ func _on_request_completed(result: int, _code: int, _headers: PackedStringArray,
 		script_loaded.emit(data["script"])
 	elif data is Dictionary and data.has("lines"):
 		_download_audio_lines(data["lines"])
+	elif data is Dictionary and data.has("scripts"):
+		news_loaded.emit(data["scripts"])
 
 
 func _download_audio_lines(lines: Array) -> void:
@@ -105,8 +120,7 @@ func _download_audio(line_index: int, url: String) -> void:
 	add_child(downloader)
 	downloader.request_completed.connect(
 		func(_r: int, _c: int, _h: PackedStringArray, body: PackedByteArray) -> void:
-			var audio := AudioStreamWAV.new()
-			audio.data = body
+			var audio := AudioStreamWAV.create_from_wav_bytes(body)
 			audio_ready.emit(line_index, audio)
 			downloader.queue_free()
 	)
