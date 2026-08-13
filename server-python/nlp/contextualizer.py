@@ -60,6 +60,31 @@ _CLOSINGS = [
     "Na ndivyo ilivyokuwa leo, tusubiri kesho.",
 ]
 
+# Direction-tuned closings (Feature #35): the community's chosen direction
+# shapes how the scene resolves.
+_CLOSINGS_BY_DIRECTION = {
+    "msisimko": [
+        "Na kitu kinachofuata kinaweza kuwa kubwa! Subiri tu.",
+        "Msisimko umezidi! Tutakuambia kinachotokea baadaye.",
+        "Hii ndiyo mwanzo tu wa mambo makubwa yanayokuja!",
+    ],
+    "furaha": [
+        "Hii inaleta matumaini makubwa kwa siku zijazo!",
+        "Tunaweza kufurahi leo; habari nzuri imefika!",
+        "Ni siku njema! Tumefurahishwa na mwendo huu.",
+    ],
+    "wasiwasi": [
+        "Tunahitaji kuwa makini sana; mambo bado yanaendelea.",
+        "Wasiwasi unaongezeka; tutafuatilia kwa karibu.",
+        "Huu ni wakati wa kujiandaa kwa yale yanayokuja.",
+    ],
+    "utulivu": [
+        "Basi, tulia na tusubiri maelezo zaidi.",
+        "Tunachukua muda kuangalia mambo kwa utulivu.",
+        "Hakuna haraka; tukusanye ukweli kwanza.",
+    ],
+}
+
 
 def _truncate(headline: str, limit: int = 40) -> str:
     """Chop a headline down for use inside dialogue."""
@@ -76,11 +101,13 @@ def _reaction_pool(mood: float) -> list[str]:
 
 
 def build_mock_script(
-    news: dict[str, Any], cast_state: dict[str, dict] | None = None
+    news: dict[str, Any],
+    cast_state: dict[str, dict] | None = None,
+    direction: str = "utulivu",
 ) -> dict[str, Any]:
-    """Create a deterministic script, weaving in memory + mood when available."""
+    """Create a deterministic script, weaving in memory, mood, and direction."""
     headline = _truncate(news.get("headline", "Habari za leo"))
-    rng = random.Random(news.get("url", "casuya") + str(cast_state or {}))
+    rng = random.Random(news.get("url", "casuya") + str(cast_state or {}) + direction)
     cast_state = cast_state or {}
 
     cast = _CAST[:]
@@ -101,7 +128,8 @@ def build_mock_script(
         opening_line = f"{opening} {headline}."
 
     reaction = rng.choice(_reaction_pool(state_b.get("mood", 0.0)))
-    closing = rng.choice(_CLOSINGS)
+    direction_pool = _CLOSINGS_BY_DIRECTION.get(direction, _CLOSINGS)
+    closing = rng.choice(direction_pool)
 
     lines = [
         {
@@ -156,7 +184,9 @@ def build_mock_script(
 
 
 def contextualize(
-    news: dict[str, Any], cast_state: dict[str, dict] | None = None
+    news: dict[str, Any],
+    cast_state: dict[str, dict] | None = None,
+    direction: str = "utulivu",
 ) -> dict[str, Any]:
     """Entry point: news → script. Swap this for an LLM call later."""
-    return build_mock_script(news, cast_state)
+    return build_mock_script(news, cast_state, direction)

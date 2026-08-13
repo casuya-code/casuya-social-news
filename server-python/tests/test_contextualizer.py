@@ -43,3 +43,23 @@ def test_tag_line_returns_registry_style(index):
     tag = tag_line(index)
     assert isinstance(tag, str)
     assert len(tag) > 3
+
+
+def test_direction_changes_closing_but_keeps_structure():
+    """Feature #35: direction tunes the scene resolution, not the shape."""
+    excited = contextualize(SAMPLE_NEWS, direction="msisimko")
+    calm = contextualize(SAMPLE_NEWS, direction="utulivu")
+    assert len(excited["lines"]) == len(calm["lines"])
+    assert excited["lines"][2]["text"] != calm["lines"][2]["text"]
+
+
+def test_direction_is_deterministic():
+    a = contextualize(SAMPLE_NEWS, direction="wasiwasi")
+    b = contextualize(SAMPLE_NEWS, direction="wasiwasi")
+    assert [line["text"] for line in a["lines"]] == [line["text"] for line in b["lines"]]
+
+
+def test_direction_defaults_to_calm():
+    default = contextualize(SAMPLE_NEWS)
+    calm = contextualize(SAMPLE_NEWS, direction="utulivu")
+    assert [line["text"] for line in default["lines"]] == [line["text"] for line in calm["lines"]]

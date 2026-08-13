@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from api.routes.v1 import health, news_routes, script_routes
+from api.routes.v1 import economy_routes, health, news_routes, script_routes
 from api.websocket_server import router as ws_router
 
 api_v1_router = APIRouter(prefix="/api/v1")
@@ -10,4 +10,5 @@ api_v1_router = APIRouter(prefix="/api/v1")
 api_v1_router.include_router(health.router, tags=["health"])
 api_v1_router.include_router(script_routes.router, prefix="/scripts", tags=["scripts"])
 api_v1_router.include_router(news_routes.router, prefix="/news", tags=["news"])
+api_v1_router.include_router(economy_routes.router, prefix="/economy", tags=["economy"])
 api_v1_router.include_router(ws_router, tags=["realtime"])

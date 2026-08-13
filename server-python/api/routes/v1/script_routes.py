@@ -34,6 +34,7 @@ class NewsInput(BaseModel):
     source: str = Field(..., min_length=2, max_length=128)
     url: str = Field(..., min_length=5, max_length=1024)
     published_at: datetime | None = None
+    direction: str = Field("utulivu", pattern="^(msisimko|furaha|wasiwasi|utulivu)$")
 
 
 class GenerateResponse(BaseModel):
@@ -59,7 +60,7 @@ async def generate_script(payload: NewsInput) -> GenerateResponse:
     if cached:
         return GenerateResponse(script=cached)
 
-    script = contextualize(payload.model_dump())
+    script = contextualize(payload.model_dump(), direction=payload.direction)
     await cache.set(cache_key, script)
 
     # Persist article + script (best-effort; pipeline must not fail on DB hiccups).
