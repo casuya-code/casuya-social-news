@@ -127,11 +127,12 @@ def build_mock_script(
         },
     ]
 
-    # Expose current mood to the client so the UI can show the drift.
+    # Expose current mood + memory to the client so the UI can show drift.
     for i, character in enumerate(cast):
         character = dict(character)
         character["mood_value"] = cast_state.get(character["id"], {}).get("mood", 0.0)
         character["mood_label"] = mood_label(character["mood_value"])
+        character["memory"] = cast_state.get(character["id"], {}).get("memory", "")
         cast[i] = character
 
     return {

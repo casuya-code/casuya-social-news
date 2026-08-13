@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from api.websocket_server import broadcast_script
 from cache.redis_client import cache
 from config.logging_config import get_logger
 from database.engine import SessionLocal
@@ -105,6 +106,7 @@ async def ingest_and_generate(fetcher=None, limit: int = 10) -> list[dict]:
     for article in fresh:
         script = contextualize(article, states)
         scripts.append(script)
+        await broadcast_script(script, states)
         _update_states(states, summarize_script(script))
         await _persist_memory(script)
 
