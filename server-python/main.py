@@ -14,10 +14,12 @@ from config.logging_config import setup_logging
 from config.settings import get_settings
 from middleware.rate_limiter import RateLimiterMiddleware
 from middleware.request_id import RequestIDMiddleware
+from task_queue.scheduler import IngestScheduler
 
 setup_logging()
 
 _settings = get_settings()
+scheduler = IngestScheduler(interval_seconds=_settings.scheduler_interval_seconds)
 
 
 @asynccontextmanager
@@ -25,7 +27,12 @@ async def lifespan(app: FastAPI):
     """Startup/shutdown lifecycle."""
     # Ensure storage directory exists for audio assets.
     _settings.storage_dir.mkdir(parents=True, exist_ok=True)
-    yield
+    if _settings.scheduler_enabled:
+        await scheduler.start()
+    try:
+        yield
+    finally:
+        await scheduler.stop()
 
 
 app = FastAPI(

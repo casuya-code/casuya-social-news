@@ -59,5 +59,9 @@ async def health_check(_: str = Depends(verify_api_key)) -> dict:
         status["status"] = "degraded"
 
     status["circuit"] = get_breaker_circuit().snapshot()
+
+    from main import scheduler
+
+    status["scheduler"] = scheduler.snapshot()
     status["app_env"] = _settings.app_env
     return status

@@ -63,6 +63,10 @@ class Settings(BaseSettings):
     rate_limit_api: str = "60/minute"
     rate_limit_voice: str = "5/minute"
 
+    # Background scheduler (endless-stories loop)
+    scheduler_enabled: bool = True
+    scheduler_interval_seconds: int = 300
+
     # Logging
     log_level: str = "INFO"
     log_format: str = "json"
