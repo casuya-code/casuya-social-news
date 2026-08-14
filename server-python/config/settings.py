@@ -3,6 +3,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Project root is the parent of the server-python directory.
@@ -61,9 +62,13 @@ class Settings(BaseSettings):
     openweather_api_key: str = ""
 
     # Storage
-    storage_backend: str = "local"
+    storage_backend: str = "local"  # local | s3
     storage_local_path: str = str(PROJECT_ROOT / "server-python" / "storage")
     cdn_base_url: str = "http://localhost:8000/storage"
+    aws_s3_bucket: str = Field("", validation_alias="STORAGE_S3_BUCKET")
+    aws_s3_region: str = Field("us-east-1", validation_alias="STORAGE_S3_REGION")
+    aws_access_key_id: str = Field("", validation_alias="STORAGE_S3_ACCESS_KEY")
+    aws_secret_access_key: str = Field("", validation_alias="STORAGE_S3_SECRET_KEY")
 
     # Rate limiting
     rate_limit_api: str = "60/minute"

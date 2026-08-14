@@ -49,6 +49,9 @@ orjson==3.11.9             # Fast JSON serialization
 python-dateutil==2.9.0
 jsonschema==4.26.0         # Contract tests: validate scripts vs shared/schemas
 
+# Storage (optional — only needed for the S3 backend; local is default)
+boto3==1.36.24
+
 # Development / Testing
 pytest==8.3.4
 pytest-asyncio==0.25.3

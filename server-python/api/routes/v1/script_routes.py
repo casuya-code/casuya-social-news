@@ -21,6 +21,7 @@ from database.models import NewsArticle, Script
 from monitoring.metrics import SCRIPTS_GENERATED, TTS_REQUESTS
 from nlp.contextualizer import contextualize
 from security.api_key_auth import verify_api_key
+from storage.audio_store import publish_audio
 from voice.tts_provider import get_provider
 
 _logger = get_logger("api.scripts")
@@ -135,7 +136,7 @@ async def generate_audio(payload: dict) -> GenerateAudioResponse:
                 out_path=out_path,
             )
             TTS_REQUESTS.labels(status="ok").inc()
-            line["audio_url"] = f"{_settings.cdn_base_url}/{script['script_id']}/{out_path.name}"
+            line["audio_url"] = publish_audio(out_path, script["script_id"])
             results.append(
                 AudioLineResponse(
                     index=line["index"],
