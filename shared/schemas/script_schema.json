@@ -67,6 +67,21 @@
           "type": "string",
           "description": "Current mood driving delivery.",
           "examples": ["uchangamfu", "hasira", "huzuni", "utulivu", "msisimko"]
+        },
+        "mood_value": {
+          "type": "number",
+          "description": "Numeric mood drift state in [-1, 1] (Feature #22).",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "mood_label": {
+          "type": "string",
+          "description": "Human label for mood_value (Feature #22).",
+          "examples": ["anafuraha", "hali ya kawaida", "ameguswa"]
+        },
+        "memory": {
+          "type": "string",
+          "description": "One-line memory carried over from earlier stories (Feature #25)."
         }
       }
     },
@@ -109,15 +124,42 @@
         "time_of_day": {
           "type": "string",
           "enum": ["asubuhi", "mchana", "usiku"],
-          "description": "Determines which prompt template was used."
+          "description": "World-clock time bucket for the story location (Feature #14)."
         },
         "mood_drift_applied": {
           "type": "boolean",
-          "description": "Whether diurnal mood drift (Feature #22) was applied."
+          "description": "Whether mood drift (Feature #22) was applied."
         },
         "characters_delta": {
           "type": ["integer", "null"],
           "description": "Number of delta updates pushed via WebSocket (Feature #27)."
+        },
+        "weather": {
+          "type": "object",
+          "description": "Weather snapshot that biased the cast's moods (Feature #30).",
+          "properties": {
+            "location": { "type": "string" },
+            "condition": {
+              "type": "string",
+              "examples": ["angavu", "mawingu", "mvua", "dhoruba"]
+            },
+            "mood_offset": {
+              "type": "number",
+              "description": "Mood bias applied, in [-1, 1]."
+            },
+            "time_of_day": {
+              "type": "string",
+              "enum": ["asubuhi", "mchana", "usiku"]
+            },
+            "source": {
+              "type": "string",
+              "enum": ["mock", "openweather"]
+            },
+            "captured_at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
         }
       }
     }

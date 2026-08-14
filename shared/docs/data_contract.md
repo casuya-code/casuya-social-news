@@ -1,19 +1,35 @@
 # Data Contract — Python ⇄ Godot
 
 This document defines how the Python server and Godot client exchange data.
+It reflects the **implemented** behavior (commit `c8d2d58`+), not just the
+plan.
 
 ## Communication Channels
 
 | Channel | Direction | Protocol | Used For |
 |---|---|---|---|
-| REST API | Client → Server | HTTPS + JSON | Generate script, fetch audio, vote |
-| WebSocket | Server → Client | WSS + JSON | Delta updates for live scenes (Feature #27) |
+| REST API | Client → Server | HTTPS + JSON | Generate script, synthesize audio, fetch/refresh news, vote, weather |
+| WebSocket | Server → Client | WSS + JSON | Live `state_snapshot` on connect + `script_delta` pushes (Feature #27) |
 
 ## Authentication
 
 - Every request carries an `X-API-Key` header (see `.env.example` → `API_KEY`).
-- WebSocket connections must validate the same key on connect.
+- WebSocket connects authenticate via `?api_key=` query parameter; a bad key
+  closes the socket with code **4401**.
 - No browser origin/CORS is required — this is a native Godot client.
+- Failed auth returns envelope with `error_code: "E4001"` (HTTP 401).
+
+## Rate Limits
+
+Per client IP, per minute (sliding window — see `middleware/rate_limiter.py`):
+
+| Bucket | Limit | Routes |
+|---|---|---|
+| general | 60/min | everything else |
+| voice | 5/min | `/api/v1/scripts/generate-audio` |
+
+Exceeding a budget returns HTTP 429 with `error_code: "E4003"` and a
+`Retry-After` header.
 
 ## Script Payload
 
@@ -22,32 +38,100 @@ Full schema: `shared/schemas/script_schema.json`
 ```
 {
   "version": "1.0",
-  "script_id": "uuid",
+  "script_id": "32-hex uuid",
   "news_ref": { "headline", "source", "published_at", "url" },
-  "characters": [{ "id", "name", "voice_id", "mood" }],
-  "lines": [
-    { "index", "character_id", "text", "emotion", "overlap", "audio_url" }
+  "characters": [
+    { "id", "name", "voice_id", "mood",
+      "mood_value": float, "mood_label": str, "memory": str }
   ],
-  "metadata": { "generated_at", "time_of_day", "mood_drift_applied", "characters_delta" }
+  "lines": [
+    { "index", "character_id", "text", "emotion",
+      "overlap": bool, "audio_url": str|null }
+  ],
+  "metadata": {
+    "generated_at", "time_of_day": "asubuhi|mchana|usiku",
+    "mood_drift_applied": bool, "characters_delta": int,
+    "weather": { "location", "condition", "mood_offset",
+                 "time_of_day", "source", "captured_at" }
+  }
 }
 ```
 
-## Emotion Tags
+- `characters[].mood_value` / `mood_label` / `memory` expose the character's
+  live drift state so the client can render mood changes (Features #22/#25).
+- `metadata.weather` is populated by the ingestor (Feature #30).
+- `metadata.characters_delta` is set on WebSocket broadcasts (Feature #27).
 
-- Registry: `shared/schemas/emotion_tags.json`
-- Format: Swahili lowercase snake_case, e.g. `anacheka_kwa_dharau`
-- Client maps tag → { voice_style, face parameters, animation intensity }
+## Story Direction (Community Steering)
+
+`POST /api/v1/scripts/generate` accepts an optional `direction` field, one of:
+
+- `msisimko` (excitement) · `furaha` (joy) · `wasiwasi` (worry) · `utulivu` (calm)
+
+The community's votes resolve a "pulse" direction that automatically tones
+the next ingestion batch. See `POST /api/v1/economy/vote`.
+
+## WebSocket Messages
+
+### On connect — `state_snapshot`
+
+```
+{ "type": "state_snapshot", "characters": { "char_id": { "memory", "mood" }, ... } }
+```
+
+### On each generated story — `script_delta`
+
+```
+{
+  "type": "script_delta",
+  "script_id": "…",
+  "headline": "…",
+  "time_of_day": "…",
+  "characters_delta": [ { "id", "name", "mood", "mood_label", "memory" } ]
+}
+```
+
+Only characters whose mood/memory actually changed are included — the
+client merges them into its local state.
+
+## Endpoints (`/api/v1`)
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/health` | Dependency status (db/cache/tts), circuit snapshot, scheduler state |
+| POST | `/scripts/generate` | News JSON → script (cache keyed by URL) |
+| POST | `/scripts/generate-audio` | Script → WAV files, returns audio URLs |
+| GET | `/news/latest` | Most recent ingested articles |
+| POST | `/news/refresh` | Run ingest+generate now; returns scripts |
+| POST | `/economy/vote` | `{script_id, client_id, direction}` |
+| GET | `/economy/stats/{script_id}` | Vote tally + winning direction |
+| GET | `/economy/influence/{client_id}` | Distinct scripts a client steered |
+| GET | `/weather?location=…` | Current weather snapshot for a location |
+| WS | `/ws?api_key=…` | Live updates (see above) |
 
 ## Response Envelope
 
-Every endpoint returns:
+Every endpoint returns (see `shared/schemas/api_response.json`):
 
 ```
 { "success": bool, "status_code": int, "message": str,
   "error_code": str|null, "request_id": str|null, "data": ... }
 ```
 
-Error codes: see README "Error Code Taxonomy" (E1001–E5002).
+- Success: `success: true`, `error_code: null`, payload in `data`.
+- Error: `success: false`, machine-readable `error_code`, `data: null`.
+
+Implemented error codes:
+
+| Code | Meaning |
+|---|---|
+| `E0000` | Unhandled internal error |
+| `E1001` | Invalid input / script generation failed |
+| `E2001` | TTS provider failure |
+| `E3001` | Not found |
+| `E3002` | Database unreachable |
+| `E4001` | Invalid/missing API key |
+| `E4003` | Rate limit exceeded |
 
 ## Versioning
 
@@ -62,3 +146,10 @@ To change a field:
 2. Add a migration note here (date + change).
 3. Update both `shared/schemas/*.json` and the corresponding Pydantic model.
 4. Add a regression test on both server and client.
+
+## Migration Log
+
+| Date | Change |
+|---|---|
+| 2026-08-13 | Initial contract. |
+| 2026-08-14 | Added `characters[].mood_value|mood_label|memory`; `metadata.weather` (Feature #30); `direction` input; economy + weather endpoints; `state_snapshot`/`script_delta` WS types; rate-limit headers; implemented error codes. |
