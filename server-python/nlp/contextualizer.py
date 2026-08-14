@@ -91,6 +91,37 @@ def _truncate(headline: str, limit: int = 40) -> str:
     return headline if len(headline) <= limit else headline[: limit - 1] + "…"
 
 
+# Feature #1: narrative prompts — methali (proverbs) woven into dialogue.
+_PROVERBS = [
+    "Haraka haraka haina baraka.",
+    "Mvumilivu hula mbivu.",
+    "Kidole kimoja hakivunji chawa.",
+    "Mwacha mila ni mtumwa.",
+    "Polepole ndiyo mwendo.",
+    "Asiyekujua hakuthamini.",
+    "Mtaka yote hukosa yote.",
+    "Haba na haba hujaza kibaba.",
+]
+
+# Feature #26: slang dictionary — lightweight urban Swahili layer.
+_SLANG = {
+    "opening": ["Mambo!", "Vipi, kijana?", "Mkuu, unasikia?", "Jambo! Usikilize hii."],
+    "filler": ["mpaka nini?", "basi na basi.", "sasa hivi tu.", "niliyaona mato!"],
+}
+
+_OPENINGS = [
+    "Hujasikia? Mambo yameendelea leo!",
+    "Wewe, leo kuna habari kubwa!",
+    "Ngoja nikuambie kilichotokea...",
+]
+
+_SLANG_OPENINGS = [
+    "Mkuu, kuna jambo la moto!",
+    "Mambo! Habari kubwa imefika leo!",
+    "Ngoja nikwambie, hii ni kubwa sana!",
+]
+
+
 def _reaction_pool(mood: float) -> list[str]:
     """Pick a reaction set tuned to a character's current mood."""
     if mood <= -0.15:
@@ -98,6 +129,15 @@ def _reaction_pool(mood: float) -> list[str]:
     if mood >= 0.15:
         return _REACTIONS_UPBEAT
     return _REACTIONS_NEUTRAL
+
+
+def _carryover_emotion(mood: float, rng: random.Random) -> str:
+    """Feature #5: emotion carried over from a character's current mood."""
+    if mood <= -0.4:
+        return rng.choice(["anakasirika", "anahofia", "anasikitika"])
+    if mood >= 0.4:
+        return rng.choice(["anajigamba", "anashangaa", "anacheka_kwa_dharau"])
+    return tag_line(2)
 
 
 def build_mock_script(
@@ -119,8 +159,11 @@ def build_mock_script(
     state_a = cast_state.get(speaker_a, {"memory": "", "mood": 0.0})
     state_b = cast_state.get(speaker_b, {"memory": "", "mood": 0.0})
 
-    # Weave a memory callback into the opening when the speaker remembers.
-    if state_a.get("memory"):
+    # Feature #26: weave slang into the opening.
+    if rng.random() < 0.4:
+        opening = rng.choice(_SLANG_OPENINGS)
+        opening_line = f"{opening} {headline}."
+    elif state_a.get("memory"):
         opening = rng.choice(_MEMORY_OPENINGS)
         opening_line = f"{opening} {headline}."
     else:
@@ -130,6 +173,18 @@ def build_mock_script(
     reaction = rng.choice(_reaction_pool(state_b.get("mood", 0.0)))
     direction_pool = _CLOSINGS_BY_DIRECTION.get(direction, _CLOSINGS)
     closing = rng.choice(direction_pool)
+
+    # Feature #1: sometimes resolve with a methali (proverb) for flavor.
+    if rng.random() < 0.35:
+        closing = f"{closing} {rng.choice(_PROVERBS)}"
+
+    # Feature #5: the closing line carries the speaker's current emotion.
+    closing_emotion = _carryover_emotion(state_a.get("mood", 0.0), rng)
+
+    # Feature #6: overlap cues — a heated scene lets lines talk over each other.
+    heat = abs(state_a.get("mood", 0.0)) + abs(state_b.get("mood", 0.0))
+    overlap_reaction = heat >= 0.4 and rng.random() < 0.6
+    overlap_closing = heat >= 0.4 and rng.random() < 0.3
 
     lines = [
         {
@@ -144,14 +199,14 @@ def build_mock_script(
             "character_id": speaker_b,
             "text": reaction,
             "emotion": tag_line(1),
-            "overlap": False,
+            "overlap": overlap_reaction,
         },
         {
             "index": 2,
             "character_id": speaker_a,
             "text": closing,
-            "emotion": tag_line(2),
-            "overlap": False,
+            "emotion": closing_emotion,
+            "overlap": overlap_closing,
         },
     ]
 

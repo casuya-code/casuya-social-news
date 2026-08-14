@@ -63,3 +63,82 @@ def test_direction_defaults_to_calm():
     default = contextualize(SAMPLE_NEWS)
     calm = contextualize(SAMPLE_NEWS, direction="utulivu")
     assert [line["text"] for line in default["lines"]] == [line["text"] for line in calm["lines"]]
+
+
+def test_slang_opening_possible():
+    """Feature #26: some scripts open with urban slang."""
+    from nlp import contextualizer as ctx
+
+    saw_slang = False
+    for seed_url in (f"https://example.com/slang-{i}" for i in range(40)):
+        news = {**SAMPLE_NEWS, "url": seed_url}
+        script = ctx.build_mock_script(news)
+        saw_slang = any(
+            line["index"] == 0 and any(line["text"].startswith(s) for s in ctx._SLANG_OPENINGS)
+            for line in script["lines"]
+        )
+        if saw_slang:
+            break
+    assert saw_slang, "no slang opening found across 40 seeds"
+
+
+def test_methali_possible_in_closing():
+    """Feature #1: closings sometimes resolve with a Swahili proverb."""
+    from nlp import contextualizer as ctx
+
+    saw_proverb = False
+    for seed_url in (f"https://example.com/methali-{i}" for i in range(60)):
+        news = {**SAMPLE_NEWS, "url": seed_url}
+        script = ctx.build_mock_script(news)
+        closing = script["lines"][2]["text"]
+        if any(p in closing for p in ctx._PROVERBS):
+            saw_proverb = True
+            break
+    assert saw_proverb, "no methali closing found across 60 seeds"
+
+
+def test_overlap_cues_with_heated_state():
+    """Feature #6: heated characters produce overlapping lines."""
+    from nlp import contextualizer as ctx
+
+    hot_states = {
+        "char_rafiki": {"memory": "", "mood": 0.7},
+        "char_bibi_mkwe": {"memory": "", "mood": 0.6},
+    }
+    saw_overlap = False
+    for seed_url in (f"https://example.com/heat-{i}" for i in range(30)):
+        news = {**SAMPLE_NEWS, "url": seed_url}
+        script = ctx.build_mock_script(news, hot_states)
+        if any(line["overlap"] for line in script["lines"]):
+            saw_overlap = True
+            break
+    assert saw_overlap, "no overlap cue found across 30 hot seeds"
+
+
+def test_emotion_carryover_in_closing():
+    """Feature #5: a character's mood carries into their closing emotion."""
+    from nlp import contextualizer as ctx
+
+    sad_states = {
+        "char_rafiki": {"memory": "", "mood": -0.8},
+        "char_bibi_mkwe": {"memory": "", "mood": 0.0},
+    }
+    saw_carried = False
+    for seed_url in (f"https://example.com/carry-{i}" for i in range(30)):
+        news = {**SAMPLE_NEWS, "url": seed_url}
+        script = ctx.build_mock_script(news, sad_states)
+        closing = script["lines"][2]
+        if closing["emotion"] in ("anakasirika", "anahofia", "anasikitika"):
+            saw_carried = True
+            break
+    assert saw_carried, "no negative carryover emotion found across 30 seeds"
+
+
+def test_determinism_holds_with_enrichment():
+    """New layers must not break seeded determinism."""
+    states = {"char_rafiki": {"memory": "Habari ya zamani", "mood": 0.5}}
+    a = contextualize(SAMPLE_NEWS, states, direction="msisimko")
+    b = contextualize(SAMPLE_NEWS, states, direction="msisimko")
+    assert [line["text"] for line in a["lines"]] == [line["text"] for line in b["lines"]]
+    assert [line["emotion"] for line in a["lines"]] == [line["emotion"] for line in b["lines"]]
+    assert [line["overlap"] for line in a["lines"]] == [line["overlap"] for line in b["lines"]]
