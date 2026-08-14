@@ -6,12 +6,13 @@ POST /api/v1/scripts/generate-audio — script → audio files
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-from api.errors import InvalidInputError, TTSProviderError
+from api.errors import InvalidInputError, ScriptTimeoutError, TTSProviderError
 from cache.redis_client import cache
 from config.logging_config import get_logger
 from config.settings import get_settings
@@ -26,6 +27,20 @@ _logger = get_logger("api.scripts")
 _settings = get_settings()
 
 router = APIRouter(dependencies=[Depends(verify_api_key)])
+
+
+async def _generate_with_timeout(payload: NewsInput) -> dict:
+    """Run script generation under a hard timeout (raises E1003 on breach)."""
+    try:
+        return await asyncio.wait_for(
+            asyncio.to_thread(contextualize, payload.model_dump(), direction=payload.direction),
+            timeout=_settings.script_generation_timeout_seconds,
+        )
+    except TimeoutError as exc:
+        _logger.error("script_generation_timeout", url=payload.url)
+        raise ScriptTimeoutError(
+            f"Script generation exceeded {_settings.script_generation_timeout_seconds}s"
+        ) from exc
 
 
 class NewsInput(BaseModel):
@@ -61,7 +76,7 @@ async def generate_script(payload: NewsInput) -> GenerateResponse:
     if cached:
         return GenerateResponse(script=cached)
 
-    script = contextualize(payload.model_dump(), direction=payload.direction)
+    script = await _generate_with_timeout(payload)
     SCRIPTS_GENERATED.labels(direction=payload.direction).inc()
     await cache.set(cache_key, script)
 

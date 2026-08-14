@@ -41,6 +41,11 @@ class EmotionTaggingError(APIError):
     error_code = "E1002"
 
 
+class ScriptTimeoutError(APIError):
+    status_code = 504
+    error_code = "E1003"
+
+
 class TTSQuotaError(APIError):
     status_code = 429
     error_code = "E2002"
@@ -79,3 +84,8 @@ class TokenExpiredError(APIError):
 class DatabaseError(APIError):
     status_code = 500
     error_code = "E3002"
+
+
+class MigrationRequiredError(APIError):
+    status_code = 409
+    error_code = "E3003"

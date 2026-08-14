@@ -147,11 +147,13 @@ Implemented error codes:
 | `E0000` | Unhandled internal error |
 | `E1001` | Invalid input / script generation failed |
 | `E1002` | Emotion tagging failed (tag not in shared registry) |
+| `E1003` | Script generation timed out (504) |
 | `E2001` | TTS provider failure |
 | `E2002` | TTS provider quota/budget exhausted |
 | `E2003` | Audio file write failed |
 | `E3001` | Not found |
 | `E3002` | Database unreachable |
+| `E3003` | Database migration required (schema version mismatch, 409) |
 | `E4001` | Invalid/missing API key or token |
 | `E4002` | JWT expired |
 | `E4003` | Rate limit exceeded |

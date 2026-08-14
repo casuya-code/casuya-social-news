@@ -53,6 +53,9 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
 
+    # NLP
+    script_generation_timeout_seconds: float = 30.0
+
     # External news / weather
     news_api_key: str = ""
     openweather_api_key: str = ""

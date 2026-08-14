@@ -11,8 +11,10 @@ from fastapi.testclient import TestClient
 
 from api.errors import (
     EmotionTaggingError,
+    MigrationRequiredError,
     NewsRateLimitedError,
     NewsSourceError,
+    ScriptTimeoutError,
     TTSQuotaError,
     TTSWriteError,
 )
@@ -21,10 +23,12 @@ from api.handlers import register_exception_handlers
 
 def test_error_codes_are_implemented():
     assert EmotionTaggingError.error_code == "E1002"
+    assert ScriptTimeoutError.error_code == "E1003"
     assert TTSQuotaError.error_code == "E2002"
     assert TTSWriteError.error_code == "E2003"
     assert NewsSourceError.error_code == "E5001"
     assert NewsRateLimitedError.error_code == "E5002"
+    assert MigrationRequiredError.error_code == "E3003"
 
 
 def _build_app() -> FastAPI:
@@ -49,6 +53,14 @@ def _build_app() -> FastAPI:
     @app.get("/boom/rate")
     async def rate():
         raise NewsRateLimitedError("news source rate limited")
+
+    @app.get("/boom/timeout")
+    async def timeout():
+        raise ScriptTimeoutError("script generation exceeded 30s")
+
+    @app.get("/boom/migration")
+    async def migration():
+        raise MigrationRequiredError("schema version mismatch")
 
     register_exception_handlers(app)
     return app
@@ -87,6 +99,20 @@ def test_news_rate_limited_envelope():
     r = client.get("/boom/rate")
     assert r.status_code == 429
     assert r.json()["error_code"] == "E5002"
+
+
+def test_script_timeout_envelope():
+    client = TestClient(_build_app())
+    r = client.get("/boom/timeout")
+    assert r.status_code == 504
+    assert r.json()["error_code"] == "E1003"
+
+
+def test_migration_required_envelope():
+    client = TestClient(_build_app())
+    r = client.get("/boom/migration")
+    assert r.status_code == 409
+    assert r.json()["error_code"] == "E3003"
 
 
 def test_emotion_tagger_raises_e1002_when_registry_mismatch(monkeypatch, tmp_path):
@@ -241,3 +267,70 @@ def test_ingest_degrades_to_mock_on_news_error(monkeypatch):
     asyncio.run(run())
     assert calls["real"] == 1
     assert calls["mock"] == 1
+
+
+def test_schema_check_raises_e3003_on_mismatch(monkeypatch):
+    """E3003: database at an older schema version must refuse to run."""
+    from database import engine as db_engine
+
+    class FakeResult:
+        def scalar(self):
+            return 0  # old schema
+
+    class FakeSession:
+        async def execute(self, stmt):
+            assert "app_meta" in str(stmt)
+            return FakeResult()
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(db_engine, "SCHEMA_VERSION", 2)
+    monkeypatch.setattr(db_engine, "SessionLocal", lambda: FakeSession())
+
+    with pytest.raises(MigrationRequiredError) as exc:
+        asyncio.run(db_engine.check_schema_version())
+    assert exc.value.error_code == "E3003"
+
+
+def test_schema_check_ok_when_versions_match(monkeypatch):
+    """Matching versions must pass without raising."""
+    from database import engine as db_engine
+
+    class FakeResult:
+        def scalar(self):
+            return db_engine.SCHEMA_VERSION
+
+    class FakeSession:
+        async def execute(self, stmt):
+            return FakeResult()
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(db_engine, "SessionLocal", lambda: FakeSession())
+    asyncio.run(db_engine.check_schema_version())
+
+
+def test_schema_check_ignores_unreachable_db(monkeypatch):
+    """No Postgres must not raise E3003 (graceful degradation)."""
+    from database import engine as db_engine
+
+    class FakeSession:
+        async def execute(self, stmt):
+            raise ConnectionError("db down")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(db_engine, "SessionLocal", lambda: FakeSession())
+    asyncio.run(db_engine.check_schema_version())
