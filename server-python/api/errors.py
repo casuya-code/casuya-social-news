@@ -36,6 +36,31 @@ class InvalidInputError(APIError):
     error_code = "E1001"
 
 
+class EmotionTaggingError(APIError):
+    status_code = 500
+    error_code = "E1002"
+
+
+class TTSQuotaError(APIError):
+    status_code = 429
+    error_code = "E2002"
+
+
+class TTSWriteError(APIError):
+    status_code = 500
+    error_code = "E2003"
+
+
+class NewsSourceError(APIError):
+    status_code = 503
+    error_code = "E5001"
+
+
+class NewsRateLimitedError(APIError):
+    status_code = 429
+    error_code = "E5002"
+
+
 class RateLimitedError(APIError):
     status_code = 429
     error_code = "E4003"

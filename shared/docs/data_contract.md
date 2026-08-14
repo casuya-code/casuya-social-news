@@ -146,12 +146,17 @@ Implemented error codes:
 |---|---|
 | `E0000` | Unhandled internal error |
 | `E1001` | Invalid input / script generation failed |
+| `E1002` | Emotion tagging failed (tag not in shared registry) |
 | `E2001` | TTS provider failure |
+| `E2002` | TTS provider quota/budget exhausted |
+| `E2003` | Audio file write failed |
 | `E3001` | Not found |
 | `E3002` | Database unreachable |
 | `E4001` | Invalid/missing API key or token |
 | `E4002` | JWT expired |
 | `E4003` | Rate limit exceeded |
+| `E5001` | News source unavailable (ingest falls back to mock feed) |
+| `E5002` | News source rate limited (ingest falls back to mock feed) |
 
 ## Versioning
 

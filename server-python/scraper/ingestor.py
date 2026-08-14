@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from api.errors import NewsRateLimitedError, NewsSourceError
 from api.websocket_server import broadcast_script
 from cache.redis_client import cache
 from config.logging_config import get_logger
@@ -20,6 +21,7 @@ from nlp.character_state import load_states, set_states
 from nlp.contextualizer import contextualize
 from nlp.memory import apply_drift, summarize_script
 from scraper.dedupe import url_fingerprint
+from scraper.mock_feed import MockFeed
 from scraper.news_api_client import NewsApiClient
 from scraper.seen_store import load_seen, save_seen
 from weather_sync.meteorological_feed import get_weather_feed, mood_offset
@@ -78,9 +80,19 @@ async def _save_seen(seen: set[str]) -> None:
 
 
 async def ingest(fetcher=None, limit: int = 10) -> list[dict]:
-    """Fetch and dedupe articles; persist new ones; return them."""
-    fetcher = fetcher or NewsApiClient()
-    articles = await fetcher.fetch_latest(limit)
+    """Fetch and dedupe articles; persist new ones; return them.
+
+    Falls back to the mock feed if the real source errors (E5001/E5002) so
+    the endless-stories loop never stalls on an upstream outage.
+    """
+    if fetcher is None:
+        fetcher = NewsApiClient()
+
+    try:
+        articles = await fetcher.fetch_latest(limit)
+    except (NewsSourceError, NewsRateLimitedError) as exc:
+        _logger.warning("news_fetch_degraded", error_code=exc.error_code, error=str(exc))
+        articles = await MockFeed().fetch_latest(limit)
 
     normalized = [n for n in (normalize_article(a) for a in articles) if n]
     seen = await _load_seen_fingerprints()

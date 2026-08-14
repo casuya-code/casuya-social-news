@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from api.errors import TTSWriteError
 from config.logging_config import get_logger
 from config.settings import get_settings
 from voice.tts_provider import TTSProvider
@@ -52,7 +53,10 @@ class GoogleCloudProvider(TTSProvider):
             voice=voice,
             audio_config=audio_config,
         )
-        out_path.write_bytes(response.audio_content)
+        try:
+            out_path.write_bytes(response.audio_content)
+        except OSError as exc:  # noqa: BLE001 - disk/path failures are E2003
+            raise TTSWriteError(f"audio write failed: {exc}") from exc
         return out_path
 
     async def health_check(self) -> bool:

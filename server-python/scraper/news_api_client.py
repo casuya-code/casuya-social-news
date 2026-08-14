@@ -12,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 
+from api.errors import NewsRateLimitedError, NewsSourceError
 from config.logging_config import get_logger
 from config.settings import get_settings
 from scraper.mock_feed import MockFeed
@@ -55,10 +56,18 @@ class NewsApiClient:
                 articles = response.json().get("articles", [])
                 _logger.info("news_api_fetch_ok", count=len(articles))
                 return articles
+            except httpx.HTTPStatusError as exc:
+                # News API returns 429 when the free-tier quota is exhausted.
+                last_error = exc
+                if exc.response.status_code == 429:
+                    _logger.warning("news_api_rate_limited")
+                    raise NewsRateLimitedError("news source rate limited") from exc
+                _logger.warning("news_api_retry", delay=delay, error=str(exc))
+                await asyncio.sleep(delay)
             except Exception as exc:  # noqa: BLE001 - retry then degrade
                 last_error = exc
                 _logger.warning("news_api_retry", delay=delay, error=str(exc))
                 await asyncio.sleep(delay)
 
         _logger.error("news_api_failed", error=str(last_error))
-        return await self._fallback.fetch_latest(limit)
+        raise NewsSourceError("news source unavailable after retries") from last_error
