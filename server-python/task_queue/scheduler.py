@@ -26,12 +26,20 @@ _logger = get_logger("task_queue.scheduler")
 class IngestScheduler:
     """Periodically pull news and generate dramatic scripts."""
 
-    def __init__(self, interval_seconds: int = 300) -> None:
+    def __init__(
+        self,
+        interval_seconds: int = 300,
+        retention_cycle_frequency: int = 12,
+        retention_enabled: bool = True,
+    ) -> None:
         self.interval_seconds = interval_seconds
+        self.retention_cycle_frequency = retention_cycle_frequency
+        self.retention_enabled = retention_enabled
         self._task: asyncio.Task | None = None
         self._stop_event = asyncio.Event()
         self.cycles_completed = 0
         self.stories_generated = 0
+        self.retention_runs = 0
         self.last_error: str | None = None
 
     @property
@@ -60,11 +68,29 @@ class IngestScheduler:
             finally:
                 SCHEDULER_LAST_DURATION.set(time.perf_counter() - cycle_start)
 
+            if self.retention_enabled and (
+                self.cycles_completed % self.retention_cycle_frequency == 0
+            ):
+                await self._run_retention()
+
             try:
                 await asyncio.wait_for(self._stop_event.wait(), timeout=self.interval_seconds)
             except TimeoutError:
                 pass  # interval elapsed → run again
         SCHEDULER_RUNNING.set(0)
+
+    async def _run_retention(self) -> None:
+        """Run the retention sweep (async DB + filesystem I/O)."""
+        try:
+            from database.engine import SessionLocal
+            from maintenance.retention import run_retention
+
+            async with SessionLocal() as session:
+                result = await run_retention(session=session)
+            self.retention_runs += 1
+            _logger.info("retention_sweep", **result)
+        except Exception as exc:  # noqa: BLE001 - never break the loop
+            _logger.error("retention_sweep_failed", error=str(exc))
 
     async def start(self) -> None:
         """Start the background loop (idempotent)."""
@@ -88,5 +114,7 @@ class IngestScheduler:
             "interval_seconds": self.interval_seconds,
             "cycles_completed": self.cycles_completed,
             "stories_generated": self.stories_generated,
+            "retention_runs": self.retention_runs,
+            "retention_enabled": self.retention_enabled,
             "last_error": self.last_error,
         }

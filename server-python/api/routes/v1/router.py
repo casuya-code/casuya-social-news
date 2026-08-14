@@ -6,6 +6,7 @@ from api.routes.v1 import (
     auth_routes,
     economy_routes,
     health,
+    maintenance_routes,
     news_routes,
     script_routes,
     weather_routes,
@@ -20,4 +21,5 @@ api_v1_router.include_router(script_routes.router, prefix="/scripts", tags=["scr
 api_v1_router.include_router(news_routes.router, prefix="/news", tags=["news"])
 api_v1_router.include_router(economy_routes.router, prefix="/economy", tags=["economy"])
 api_v1_router.include_router(weather_routes.router, prefix="/weather", tags=["weather"])
+api_v1_router.include_router(maintenance_routes.router, prefix="/maintenance", tags=["maintenance"])
 api_v1_router.include_router(ws_router, tags=["realtime"])

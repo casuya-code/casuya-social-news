@@ -98,6 +98,61 @@ async def test_scheduler_snapshot_reports_state():
     assert snap["cycles_completed"] == 0
 
 
+@pytest.mark.asyncio
+async def test_scheduler_runs_retention_on_frequency(monkeypatch):
+    calls = {"ingest": 0, "retention": 0}
+
+    async def fake_ingest():
+        calls["ingest"] += 1
+        return [{"script_id": "s"}]
+
+    async def fake_retention(self):
+        calls["retention"] += 1
+
+    monkeypatch.setattr("task_queue.scheduler.ingest_and_generate", fake_ingest)
+    monkeypatch.setattr("task_queue.scheduler.IngestScheduler._run_retention", fake_retention)
+    scheduler = IngestScheduler(interval_seconds=0.05, retention_cycle_frequency=2)
+    await scheduler.start()
+
+    for _ in range(100):
+        if calls["retention"] >= 1:
+            break
+        await asyncio_sleep(0.02)
+
+    assert calls["ingest"] >= 2
+    assert calls["retention"] >= 1
+    assert scheduler.snapshot()["retention_enabled"] is True
+    await scheduler.stop()
+
+
+@pytest.mark.asyncio
+async def test_scheduler_retention_can_be_disabled(monkeypatch):
+    calls = {"ingest": 0, "retention": 0}
+
+    async def fake_ingest():
+        calls["ingest"] += 1
+        return []
+
+    async def fake_retention(self):
+        calls["retention"] += 1
+
+    monkeypatch.setattr("task_queue.scheduler.ingest_and_generate", fake_ingest)
+    monkeypatch.setattr("task_queue.scheduler.IngestScheduler._run_retention", fake_retention)
+    scheduler = IngestScheduler(
+        interval_seconds=0.05, retention_cycle_frequency=1, retention_enabled=False
+    )
+    await scheduler.start()
+
+    for _ in range(50):
+        if calls["ingest"] >= 3:
+            break
+        await asyncio_sleep(0.02)
+
+    assert calls["retention"] == 0
+    assert scheduler.snapshot()["retention_enabled"] is False
+    await scheduler.stop()
+
+
 async def asyncio_sleep(seconds: float) -> None:
     import asyncio
 

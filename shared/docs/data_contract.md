@@ -128,6 +128,7 @@ client merges them into its local state.
 | GET | `/economy/stats/{script_id}` | Vote tally + winning direction |
 | GET | `/economy/influence/{client_id}` | Distinct scripts a client steered |
 | GET | `/weather?location=…` | Current weather snapshot for a location |
+| POST | `/maintenance/retention` | Run the retention policy now (audio purge + DB article delete + script compression); `?dry_run=true` to preview |
 | WS | `/ws?api_key=…` | Live updates (see above) |
 
 ## Response Envelope

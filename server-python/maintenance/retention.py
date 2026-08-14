@@ -1,9 +1,14 @@
-"""Storage retention (README data-retention rules).
+"""Storage + database retention (README data-retention rules).
 
-Generated script audio dirs live in storage/ under a 32-hex script_id name.
-They are expensive and disposable — purge any dir older than the retention
-window (24h by default). Character state and seen-URL JSON files are NOT
-script audio and are never touched here.
+- Script audio dirs: purge any 32-hex dir older than the window (24h).
+- Raw news articles: delete DB rows older than the window (48h regardless).
+- Full script JSON: after 24h compress the DB row to a one-line summary
+  (`Script.summary`) and remove the original payload; drop the file-backed
+  script from the durable store so listen-mode clients can't resurrect
+  expired scripts.
+
+Character state, mood values, and seen-URL fingerprints are never touched
+(they are cheap, high-value, indefinite retention).
 
 Run via: python -m maintenance.retention --dry-run
 """
@@ -16,12 +21,16 @@ import shutil
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from sqlalchemy import delete, select
+
 from config.settings import get_settings
 
 _SCRIPT_ID_DIR = re.compile(r"^[0-9a-f]{32}$")
 _STATE_FILES = {"seen_urls.json", "character_state.json", "votes.json", "mock_round.txt"}
 
 DEFAULT_RETENTION_HOURS = 24
+DEFAULT_ARTICLE_HOURS = 48
+DEFAULT_SCRIPT_HOURS = 24
 
 
 def script_audio_dirs(storage_dir: Path) -> list[Path]:
@@ -72,19 +81,158 @@ def purge(
     }
 
 
+def _one_line_summary(script: dict) -> str:
+    """Compact a full script into a single storage-friendly line."""
+    headline = script.get("news_ref", {}).get("headline", "habari")
+    cast = len(script.get("characters", []))
+    lines = len(script.get("lines", []))
+    return f"{headline} | wahusika {cast}, mistari {lines}"
+
+
+async def purge_expired_articles(
+    session,
+    *,
+    retention_hours: int = DEFAULT_ARTICLE_HOURS,
+    now: datetime | None = None,
+) -> int:
+    """Delete raw news article rows older than the window. Returns count."""
+    cutoff = (now or datetime.now(UTC)) - timedelta(hours=retention_hours)
+    try:
+        from database.models import NewsArticle
+
+        result = await session.execute(
+            delete(NewsArticle).where(NewsArticle.fetched_at < cutoff)
+        )
+        await session.commit()
+        return int(result.rowcount or 0)
+    except Exception:  # noqa: BLE001 - DB down → retention degrades
+        await session.rollback()
+        return 0
+
+
+async def compress_old_scripts(
+    session,
+    *,
+    retention_hours: int = DEFAULT_SCRIPT_HOURS,
+    now: datetime | None = None,
+) -> dict:
+    """Compress full script JSON to one-line summaries after the window.
+
+    Updates the DB row (summary set, full_json emptied) and removes the
+    file-backed copy so expired scripts can't be resurrected by id.
+    Returns {"compressed": n, "files_dropped": n}.
+    """
+    cutoff = (now or datetime.now(UTC)) - timedelta(hours=retention_hours)
+    compressed = 0
+    files_dropped = 0
+    try:
+        from database.models import Script
+        from storage.script_store import script_path
+
+        rows = (
+            await session.execute(
+                select(Script)
+                .where(Script.created_at < cutoff)
+                .where(Script.summary.is_(None))
+            )
+        ).scalars()
+        for script in rows:
+            try:
+                script.summary = _one_line_summary(script.full_json or {})
+                script.full_json = {}
+                compressed += 1
+                path = script_path(script.id)
+                if path.exists():
+                    path.unlink()
+                    files_dropped += 1
+            except Exception:  # noqa: BLE001 - keep sweeping the rest
+                continue
+        await session.commit()
+    except Exception:  # noqa: BLE001 - DB down → retention degrades
+        await session.rollback()
+        return {"compressed": 0, "files_dropped": 0}
+    return {"compressed": compressed, "files_dropped": files_dropped}
+
+
+async def run_retention(
+    *,
+    storage_dir: Path | None = None,
+    audio_hours: int = DEFAULT_RETENTION_HOURS,
+    article_hours: int = DEFAULT_ARTICLE_HOURS,
+    script_hours: int = DEFAULT_SCRIPT_HOURS,
+    dry_run: bool = False,
+    now: datetime | None = None,
+    session=None,
+) -> dict:
+    """Run the full retention sweep: audio dirs + DB articles + script JSON."""
+    audio = purge(
+        storage_dir=storage_dir,
+        retention_hours=audio_hours,
+        dry_run=dry_run,
+        now=now,
+    )
+    if dry_run or session is None:
+        articles = {"deleted": 0}
+        scripts = {"compressed": 0, "files_dropped": 0}
+    else:
+        articles = {
+            "deleted": await purge_expired_articles(
+                session, retention_hours=article_hours, now=now
+            )
+        }
+        scripts = await compress_old_scripts(session, retention_hours=script_hours, now=now)
+
+    return {
+        "audio": {k: audio[k] for k in ("purged", "kept", "dry_run")},
+        "articles_deleted": articles["deleted"],
+        "scripts_compressed": scripts["compressed"],
+        "script_files_dropped": scripts["files_dropped"],
+        "dry_run": dry_run,
+    }
+
+
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Purge expired script audio from storage")
+    parser = argparse.ArgumentParser(description="Run full retention sweep")
     parser.add_argument("--hours", type=int, default=DEFAULT_RETENTION_HOURS)
     parser.add_argument("--dry-run", action="store_true", help="report only, delete nothing")
+    parser.add_argument("--skip-db", action="store_true", help="audio purge only (no DB access)")
     args = parser.parse_args()
 
-    result = purge(retention_hours=args.hours, dry_run=args.dry_run)
+    import asyncio
+
+    async def _run() -> dict:
+        session = None
+        if not args.skip_db:
+            try:
+                from database.engine import SessionLocal
+
+                session = SessionLocal()
+            except Exception:  # noqa: BLE001 - fall back to audio-only
+                print("warning: DB unavailable, running audio purge only")
+                session = None
+
+        try:
+            return await run_retention(
+                audio_hours=args.hours,
+                dry_run=args.dry_run,
+                session=session,
+            )
+        finally:
+            if session is not None:
+                try:
+                    await session.close()
+                except Exception:  # noqa: BLE001
+                    pass
+
+    result = asyncio.run(_run())
+
+    prefix = "dry-run: " if result["dry_run"] else ""
     print(
-        f"[{'dry-run: ' if result['dry_run'] else ''}purged {result['purged']}, "
-        f"kept {result['kept']}, errors {result['errors']}]"
+        f"[{prefix}audio purged {result['audio']['purged']}, "
+        f"articles deleted {result['articles_deleted']}, "
+        f"scripts compressed {result['scripts_compressed']} "
+        f"(files dropped {result['script_files_dropped']})]"
     )
-    for name in result["removed"]:
-        print(f"  purged: {name}")
 
 
 if __name__ == "__main__":

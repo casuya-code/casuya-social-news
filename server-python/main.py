@@ -20,7 +20,11 @@ from task_queue.scheduler import IngestScheduler
 setup_logging()
 
 _settings = get_settings()
-scheduler = IngestScheduler(interval_seconds=_settings.scheduler_interval_seconds)
+scheduler = IngestScheduler(
+    interval_seconds=_settings.scheduler_interval_seconds,
+    retention_cycle_frequency=_settings.retention_cycle_frequency,
+    retention_enabled=_settings.retention_enabled,
+)
 
 
 @asynccontextmanager

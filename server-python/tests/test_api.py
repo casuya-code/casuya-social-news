@@ -145,3 +145,24 @@ def test_news_refresh_ok():
     r = client.post("/api/v1/news/refresh", headers=AUTH)
     assert r.status_code == 200
     assert "scripts" in r.json()
+
+
+def test_retention_requires_key():
+    r = client.post("/api/v1/maintenance/retention")
+    assert r.status_code == 401
+
+
+def test_retention_sweep_ok():
+    r = client.post("/api/v1/maintenance/retention", headers=AUTH)
+    assert r.status_code == 200
+    body = r.json()
+    assert "audio" in body
+    assert body["audio"]["dry_run"] is False
+    assert "articles_deleted" in body
+    assert "scripts_compressed" in body
+
+
+def test_retention_dry_run_ok():
+    r = client.post("/api/v1/maintenance/retention?dry_run=true", headers=AUTH)
+    assert r.status_code == 200
+    assert r.json()["dry_run"] is True

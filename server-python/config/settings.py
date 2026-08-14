@@ -80,6 +80,9 @@ class Settings(BaseSettings):
     # scheduler_backend: "inprocess" runs the asyncio loop inside the server;
     # "celery" defers ingestion to a Celery worker + beat (Redis broker).
     scheduler_backend: str = "inprocess"
+    # Run the retention sweep every N ingest cycles (audio purge + DB cleanup).
+    retention_enabled: bool = True
+    retention_cycle_frequency: int = 12  # ~1h at the default 300s interval
 
     # Logging
     log_level: str = "INFO"
