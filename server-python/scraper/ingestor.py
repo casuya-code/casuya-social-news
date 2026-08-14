@@ -24,6 +24,7 @@ from scraper.dedupe import url_fingerprint
 from scraper.mock_feed import MockFeed
 from scraper.news_api_client import NewsApiClient
 from scraper.seen_store import load_seen, save_seen
+from storage.script_store import save_script
 from weather_sync.meteorological_feed import get_weather_feed, mood_offset
 
 _logger = get_logger("scraper.ingestor")
@@ -133,6 +134,7 @@ async def ingest_and_generate(fetcher=None, limit: int = 10) -> list[dict]:
         script = contextualize(article, states, direction=pulse)
         SCRIPTS_GENERATED.labels(direction=pulse).inc()
         script["metadata"]["weather"] = weather
+        save_script(script)
         scripts.append(script)
         await broadcast_script(script, states)
         _update_states(states, summarize_script(script))

@@ -15,6 +15,7 @@ extends Control
 @onready var dialogue_label: Label = %DialogueLabel
 @onready var emotion_label: Label = %EmotionLabel
 @onready var start_button: Button = %StartButton
+@onready var listen_button: Button = %ListenButton
 @onready var next_button: Button = %NextButton
 @onready var vote_row: HBoxContainer = %VoteRow
 @onready var msisimko_button: Button = %MsisimkoButton
@@ -31,6 +32,9 @@ var _audio: Dictionary = {}  # line_index -> AudioStream
 var _line_index := 0
 var _playing := false
 var _voted := false
+var _listen_mode := false
+var _busy := false
+var _queue: Array = []
 
 
 func _ready() -> void:
@@ -43,6 +47,7 @@ func _ready() -> void:
 
 func _connect_signals() -> void:
 	Network.script_failed.connect(_on_script_failed)
+	Network.script_loaded.connect(_on_script_loaded)
 	Network.news_loaded.connect(_on_news_loaded)
 	Network.audio_ready.connect(_on_audio_ready)
 	Network.ws_connected.connect(_on_ws_connected)
@@ -52,11 +57,19 @@ func _connect_signals() -> void:
 	Network.vote_result.connect(_on_vote_result)
 	player.finished.connect(_on_audio_finished)
 	start_button.pressed.connect(_on_start_pressed)
+	listen_button.pressed.connect(_on_listen_pressed)
 	next_button.pressed.connect(_on_next_pressed)
 	msisimko_button.pressed.connect(func() -> void: _cast_vote("msisimko"))
 	furaha_button.pressed.connect(func() -> void: _cast_vote("furaha"))
 	wasiwasi_button.pressed.connect(func() -> void: _cast_vote("wasiwasi"))
 	utulivu_button.pressed.connect(func() -> void: _cast_vote("utulivu"))
+
+
+func _on_listen_pressed() -> void:
+	_listen_mode = not _listen_mode
+	listen_button.text = "Sikiliza: WASH" if _listen_mode else "Sikiliza"
+	if _listen_mode:
+		status_label.text = "Sikiliza wash — hadithi mpya zitacheza kiotomatiki"
 
 
 func _on_ws_connected() -> void:
@@ -72,10 +85,22 @@ func _on_ws_state_snapshot(characters: Dictionary) -> void:
 
 
 func _on_ws_script_delta(delta: Dictionary) -> void:
-	# A new story just dropped live; peek without interrupting playback.
 	var headline: String = delta.get("headline", "")
 	if headline != "":
 		live_label.text = "HABARI MPYA: " + headline
+	if _listen_mode:
+		var script_id: String = delta.get("script_id", "")
+		if script_id != "":
+			Network.fetch_script(script_id)
+
+
+func _on_script_loaded(script: Dictionary) -> void:
+	# A fetched live script (or regenerated one) arrived. Queue if busy,
+	# otherwise play it straight away.
+	if _busy:
+		_queue.append(script)
+	else:
+		_start_script(script)
 
 
 func _cast_vote(direction: String) -> void:
@@ -116,6 +141,7 @@ func _on_news_loaded(scripts: Array) -> void:
 
 
 func _start_script(script: Dictionary) -> void:
+	_busy = true
 	_current_script = script
 	_lines = script.get("lines", [])
 	_audio.clear()
@@ -158,11 +184,16 @@ func _on_audio_finished() -> void:
 	var next := _line_index + 1
 	if next < _lines.size():
 		_play_line(next)
-	elif not _voted:
-		# A story just finished: let the listener steer the community pulse.
-		vote_row.show()
-		for button in [msisimko_button, furaha_button, wasiwasi_button, utulivu_button]:
-			button.disabled = false
+	else:
+		_busy = false
+		if _listen_mode and not _queue.is_empty():
+			# Live radio: roll straight into the next queued story.
+			_start_script(_queue.pop_front())
+		elif not _voted:
+			# A story just finished: let the listener steer the community pulse.
+			vote_row.show()
+			for button in [msisimko_button, furaha_button, wasiwasi_button, utulivu_button]:
+				button.disabled = false
 
 
 func _on_next_pressed() -> void:

@@ -12,7 +12,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
-from api.errors import InvalidInputError, ScriptTimeoutError, TTSProviderError
+from api.errors import InvalidInputError, NotFoundError, ScriptTimeoutError, TTSProviderError
 from cache.redis_client import cache
 from config.logging_config import get_logger
 from config.settings import get_settings
@@ -22,6 +22,7 @@ from monitoring.metrics import SCRIPTS_GENERATED, TTS_REQUESTS
 from nlp.contextualizer import contextualize
 from security.api_key_auth import verify_api_key
 from storage.audio_store import publish_audio
+from storage.script_store import load_script, save_script
 from voice.tts_provider import get_provider
 
 _logger = get_logger("api.scripts")
@@ -80,6 +81,7 @@ async def generate_script(payload: NewsInput) -> GenerateResponse:
     script = await _generate_with_timeout(payload)
     SCRIPTS_GENERATED.labels(direction=payload.direction).inc()
     await cache.set(cache_key, script)
+    save_script(script)
 
     # Persist article + script (best-effort; pipeline must not fail on DB hiccups).
     try:
@@ -104,6 +106,20 @@ async def generate_script(payload: NewsInput) -> GenerateResponse:
     except Exception as exc:  # noqa: BLE001
         _logger.warning("db_persist_failed", error=str(exc))
 
+    return GenerateResponse(script=script)
+
+
+@router.get("/{script_id}", response_model=GenerateResponse)
+async def fetch_script(script_id: str) -> GenerateResponse:
+    """Return a previously generated script by id (for live listen mode).
+
+    Scripts are persisted to the file-backed store during generation and
+    ingest, so clients can pull the full script behind a WebSocket
+    `script_delta` and play it without re-generating.
+    """
+    script = load_script(script_id)
+    if script is None:
+        raise NotFoundError(f"Script {script_id} not found")
     return GenerateResponse(script=script)
 
 

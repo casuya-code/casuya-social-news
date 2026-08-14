@@ -66,6 +66,27 @@ def test_generate_audio():
         assert "audio_url" in line
 
 
+def test_fetch_script_requires_key():
+    r = client.get("/api/v1/scripts/some-script-id")
+    assert r.status_code == 401
+
+
+def test_fetch_script_ok():
+    gen = client.post("/api/v1/scripts/generate", json=NEWS, headers=AUTH)
+    script = gen.json()["script"]
+    r = client.get(f"/api/v1/scripts/{script['script_id']}", headers=AUTH)
+    assert r.status_code == 200
+    fetched = r.json()["script"]
+    assert fetched["script_id"] == script["script_id"]
+    assert fetched["news_ref"]["headline"] == NEWS["headline"]
+
+
+def test_fetch_script_not_found():
+    r = client.get("/api/v1/scripts/does-not-exist", headers=AUTH)
+    assert r.status_code == 404
+    assert r.json()["error_code"] == "E3001"
+
+
 def test_generate_audio_accepts_float_line_indices():
     """GDScript clients send floats for JSON ints — indices must be coerced."""
     gen = client.post("/api/v1/scripts/generate", json=NEWS, headers=AUTH)

@@ -135,6 +135,11 @@ func refresh_news() -> void:
 	_request("news", base_url + API_PREFIX + "/news/refresh", HTTPClient.METHOD_POST)
 
 
+## Fetch a previously generated script by id (for live listen mode).
+func fetch_script(script_id: String) -> void:
+	_request("fetch", base_url + API_PREFIX + "/scripts/" + script_id, HTTPClient.METHOD_GET)
+
+
 ## Fire one request on its own HTTPRequest node (so parallel calls never clash).
 func _request(tag: String, url: String, method: HTTPClient.Method, body: String = "") -> void:
 	var http := HTTPRequest.new()
@@ -176,6 +181,10 @@ func _on_request_completed(tag: String, result: int, _code: int, _headers: Packe
 
 	if tag == "vote":
 		vote_result.emit(data)
+		return
+
+	if tag == "fetch":
+		script_loaded.emit(data.get("script", {}))
 		return
 
 	if data is Dictionary and data.has("script"):

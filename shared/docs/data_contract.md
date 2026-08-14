@@ -119,6 +119,7 @@ client merges them into its local state.
 | GET | `/auth/me` | Operator claims for the current access token |
 | GET | `/health` | Dependency status (db/cache/tts), circuit snapshot, scheduler state |
 | POST | `/scripts/generate` | News JSON → script (cache keyed by URL) |
+| GET | `/scripts/{script_id}` | Fetch a previously generated script by id (listen mode); 404 `E3001` if missing |
 | POST | `/scripts/generate-audio` | Script → WAV files, returns audio URLs |
 | GET | `/news/latest` | Most recent ingested articles |
 | POST | `/news/refresh` | Run ingest+generate now; returns scripts |

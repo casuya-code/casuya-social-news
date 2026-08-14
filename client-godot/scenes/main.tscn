@@ -146,6 +146,12 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Anza"
 
+[node name="ListenButton" type="Button" parent="VBox/ButtonRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Sikiliza"
+
 [node name="NextButton" type="Button" parent="VBox/ButtonRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
