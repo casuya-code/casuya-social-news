@@ -9,8 +9,15 @@ without touching the ingest pipeline itself.
 from __future__ import annotations
 
 import asyncio
+import time
 
 from config.logging_config import get_logger
+from monitoring.metrics import (
+    SCHEDULER_CYCLES,
+    SCHEDULER_ERRORS,
+    SCHEDULER_LAST_DURATION,
+    SCHEDULER_RUNNING,
+)
 from scraper.ingestor import ingest_and_generate
 
 _logger = get_logger("task_queue.scheduler")
@@ -32,11 +39,14 @@ class IngestScheduler:
         return self._task is not None and not self._task.done()
 
     async def _loop(self) -> None:
+        SCHEDULER_RUNNING.set(1)
         while not self._stop_event.is_set():
+            cycle_start = time.perf_counter()
             try:
                 scripts = await ingest_and_generate()
                 self.cycles_completed += 1
                 self.stories_generated += len(scripts)
+                SCHEDULER_CYCLES.inc()
                 _logger.info(
                     "scheduler_cycle",
                     interval=self.interval_seconds,
@@ -45,12 +55,16 @@ class IngestScheduler:
                 )
             except Exception as exc:  # noqa: BLE001 - keep the loop alive
                 self.last_error = str(exc)
+                SCHEDULER_ERRORS.inc()
                 _logger.error("scheduler_cycle_failed", error=str(exc))
+            finally:
+                SCHEDULER_LAST_DURATION.set(time.perf_counter() - cycle_start)
 
             try:
                 await asyncio.wait_for(self._stop_event.wait(), timeout=self.interval_seconds)
             except TimeoutError:
                 pass  # interval elapsed → run again
+        SCHEDULER_RUNNING.set(0)
 
     async def start(self) -> None:
         """Start the background loop (idempotent)."""

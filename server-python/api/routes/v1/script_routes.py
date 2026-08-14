@@ -17,6 +17,7 @@ from config.logging_config import get_logger
 from config.settings import get_settings
 from database.engine import SessionLocal
 from database.models import NewsArticle, Script
+from monitoring.metrics import SCRIPTS_GENERATED, TTS_REQUESTS
 from nlp.contextualizer import contextualize
 from security.api_key_auth import verify_api_key
 from voice.tts_provider import get_provider
@@ -61,6 +62,7 @@ async def generate_script(payload: NewsInput) -> GenerateResponse:
         return GenerateResponse(script=cached)
 
     script = contextualize(payload.model_dump(), direction=payload.direction)
+    SCRIPTS_GENERATED.labels(direction=payload.direction).inc()
     await cache.set(cache_key, script)
 
     # Persist article + script (best-effort; pipeline must not fail on DB hiccups).
@@ -117,6 +119,7 @@ async def generate_audio(payload: dict) -> GenerateAudioResponse:
                 voice_id=voice_map.get(line["character_id"], "default"),
                 out_path=out_path,
             )
+            TTS_REQUESTS.labels(status="ok").inc()
             line["audio_url"] = f"{_settings.cdn_base_url}/{script['script_id']}/{out_path.name}"
             results.append(
                 AudioLineResponse(
@@ -126,6 +129,7 @@ async def generate_audio(payload: dict) -> GenerateAudioResponse:
                 )
             )
         except Exception as exc:  # noqa: BLE001
+            TTS_REQUESTS.labels(status="error").inc()
             _logger.error("tts_line_failed", index=line["index"], error=str(exc))
             raise TTSProviderError(f"TTS synthesis failed for line {line['index']}") from exc
 

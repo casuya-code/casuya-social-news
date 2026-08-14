@@ -15,6 +15,7 @@ from config.logging_config import get_logger
 from database.engine import SessionLocal
 from database.models import MemoryEvent, NewsArticle
 from economy.vote_service import community_pulse
+from monitoring.metrics import NEWS_INGESTED, SCRIPTS_GENERATED
 from nlp.character_state import load_states, set_states
 from nlp.contextualizer import contextualize
 from nlp.memory import apply_drift, summarize_script
@@ -89,6 +90,7 @@ async def ingest(fetcher=None, limit: int = 10) -> list[dict]:
         seen.add(url_fingerprint(article["url"]))
 
     await _save_seen(seen)
+    NEWS_INGESTED.inc(len(fresh))
     _logger.info("ingest_complete", fetched=len(articles), fresh=len(fresh))
 
     await _persist_articles(fresh)
@@ -117,6 +119,7 @@ async def ingest_and_generate(fetcher=None, limit: int = 10) -> list[dict]:
     scripts: list[dict] = []
     for article in fresh:
         script = contextualize(article, states, direction=pulse)
+        SCRIPTS_GENERATED.labels(direction=pulse).inc()
         script["metadata"]["weather"] = weather
         scripts.append(script)
         await broadcast_script(script, states)

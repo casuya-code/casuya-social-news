@@ -14,6 +14,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from api.delta_compressor import build_script_delta
 from config.logging_config import get_logger
 from config.settings import get_settings
+from monitoring.metrics import WS_CONNECTIONS, WS_MESSAGES_SENT
 from nlp.character_state import load_states
 
 _logger = get_logger("api.ws")
@@ -35,20 +36,24 @@ class ConnectionManager:
     async def connect(self, ws: WebSocket) -> None:
         await ws.accept()
         self._active.add(ws)
+        WS_CONNECTIONS.set(self.count)
         _logger.info("ws_connected", clients=self.count)
 
     def disconnect(self, ws: WebSocket) -> None:
         self._active.discard(ws)
+        WS_CONNECTIONS.set(self.count)
         _logger.info("ws_disconnected", clients=self.count)
 
     async def send(self, ws: WebSocket, message: dict) -> None:
         await ws.send_text(json.dumps(message))
+        WS_MESSAGES_SENT.labels(message_type=message.get("type", "unknown")).inc()
 
     async def broadcast(self, message: dict) -> None:
         payload = json.dumps(message)
         for ws in list(self._active):
             try:
                 await ws.send_text(payload)
+                WS_MESSAGES_SENT.labels(message_type=message.get("type", "unknown")).inc()
             except Exception:  # noqa: BLE001 - drop dead connections
                 self.disconnect(ws)
 

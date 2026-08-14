@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.staticfiles import StaticFiles
 
 from api.handlers import register_exception_handlers
@@ -14,6 +14,7 @@ from config.logging_config import setup_logging
 from config.settings import get_settings
 from middleware.rate_limiter import RateLimiterMiddleware
 from middleware.request_id import RequestIDMiddleware
+from monitoring.metrics import MetricsMiddleware, render_metrics
 from task_queue.scheduler import IngestScheduler
 
 setup_logging()
@@ -43,8 +44,9 @@ app = FastAPI(
 )
 
 register_exception_handlers(app)
-app.add_middleware(RateLimiterMiddleware)
 app.add_middleware(RequestIDMiddleware)
+app.add_middleware(RateLimiterMiddleware)
+app.add_middleware(MetricsMiddleware)  # outermost → sees every request/response
 
 # Serve synthesized audio from local storage.
 os.makedirs(_settings.storage_dir, exist_ok=True)
@@ -57,3 +59,10 @@ app.include_router(api_v1_router)
 async def root() -> dict:
     """Simple root route for sanity checks."""
     return {"service": "casuya-social-news", "docs": "/docs"}
+
+
+@app.get("/metrics", include_in_schema=False)
+async def metrics() -> Response:
+    """Prometheus scrape endpoint (no API key — scoped to the scrape target)."""
+    body, content_type = render_metrics()
+    return Response(content=body, media_type=content_type)

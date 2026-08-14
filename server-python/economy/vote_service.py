@@ -8,6 +8,7 @@ story so the community literally steers the narrative.
 from __future__ import annotations
 
 from economy.vote_store import load_votes, save_votes
+from monitoring.metrics import VOTES_RECORDED
 
 ALLOWED_DIRECTIONS = ("msisimko", "furaha", "wasiwasi", "utulivu")
 
@@ -33,6 +34,7 @@ def record_vote(script_id: str, client_id: str, direction: str) -> bool:
 
     per_script[client_id] = direction
     save_votes(votes)
+    VOTES_RECORDED.labels(direction=direction).inc()
     return True
 
 
