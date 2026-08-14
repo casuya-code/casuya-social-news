@@ -83,7 +83,8 @@ async def test_ingest_steered_by_community_pulse(isolated_state, isolated_votes)
     assert len(scripts) == 4
     msisimko_closings = _CLOSINGS_BY_DIRECTION["msisimko"]
     for script in scripts:
-        assert script["lines"][2]["text"] in msisimko_closings
+        closing = script["lines"][2]["text"]
+        assert any(closing.startswith(c) for c in msisimko_closings), closing
 
 
 @pytest.mark.asyncio

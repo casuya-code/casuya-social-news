@@ -142,3 +142,53 @@ def test_determinism_holds_with_enrichment():
     assert [line["text"] for line in a["lines"]] == [line["text"] for line in b["lines"]]
     assert [line["emotion"] for line in a["lines"]] == [line["emotion"] for line in b["lines"]]
     assert [line["overlap"] for line in a["lines"]] == [line["overlap"] for line in b["lines"]]
+
+
+def test_product_placement_appears_somewhere():
+    """Feature #34: some scripts carry a sponsor sign-off line."""
+    from nlp import contextualizer as ctx
+
+    saw_placement = False
+    for seed_url in (f"https://example.com/sponsor-{i}" for i in range(50)):
+        news = {**SAMPLE_NEWS, "url": seed_url}
+        script = ctx.build_mock_script(news)
+        badge = script["metadata"].get("product_placement")
+        if badge and any(
+            line.get("text", "").startswith(badge["tagline"]) for line in script["lines"]
+        ):
+            saw_placement = True
+            break
+    assert saw_placement, "no product placement found across 50 seeds"
+
+
+def test_product_placement_deterministic_per_url():
+    """Same URL → same brand, same sign-off, same line count."""
+    news = {**SAMPLE_NEWS, "url": "https://example.com/sponsor-determinism"}
+    a = contextualize(news)
+    b = contextualize(news)
+    assert [line["text"] for line in a["lines"]] == [line["text"] for line in b["lines"]]
+    assert a["metadata"].get("product_placement") == b["metadata"].get("product_placement")
+
+
+def test_product_placement_direction_stable():
+    """Placement must not change line count or reorder across directions."""
+    news = {**SAMPLE_NEWS, "url": "https://example.com/sponsor-direction"}
+    excited = contextualize(news, direction="msisimko")
+    calm = contextualize(news, direction="utulivu")
+    assert len(excited["lines"]) == len(calm["lines"])
+    assert excited["lines"][2]["text"] != calm["lines"][2]["text"]
+
+
+def test_product_placement_badge_matches_signoff():
+    """The metadata badge and the appended line must reference the same brand."""
+    from nlp import contextualizer as ctx
+
+    for seed_url in (f"https://example.com/badge-{i}" for i in range(50)):
+        news = {**SAMPLE_NEWS, "url": seed_url}
+        script = ctx.build_mock_script(news)
+        badge = script["metadata"].get("product_placement")
+        if not badge:
+            continue
+        signoffs = [line for line in script["lines"] if line["text"].startswith(badge["tagline"])]
+        assert len(signoffs) == 1, f"badge brand {badge['brand']} must match exactly one line"
+        assert badge["brand"] in signoffs[0]["text"]

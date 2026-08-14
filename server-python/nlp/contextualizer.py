@@ -16,6 +16,7 @@ from uuid import uuid4
 
 from nlp.emotion_tagger import tag_line
 from nlp.memory import mood_label
+from nlp.product_placement import select_placement
 
 _CAST: list[dict[str, str]] = [
     {"id": "char_bibi_mkwe", "name": "Bibi Mkwe", "voice_id": "mock_bibi", "mood": "uchangamfu"},
@@ -210,6 +211,16 @@ def build_mock_script(
         },
     ]
 
+    # Feature #34: append a sponsor sign-off line after the closing.
+    placement_line, placement_badge = select_placement(
+        news_url=news.get("url", ""),
+        cast_state=cast_state,
+        speaker=speaker_a,
+        next_index=len(lines),
+    )
+    if placement_line is not None:
+        lines.append(placement_line)
+
     # Expose current mood + memory to the client so the UI can show drift.
     for i, character in enumerate(cast):
         character = dict(character)
@@ -234,6 +245,7 @@ def build_mock_script(
             "time_of_day": "mchana",
             "mood_drift_applied": bool(cast_state),
             "characters_delta": 0,
+            **({"product_placement": placement_badge} if placement_badge else {}),
         },
     }
 
