@@ -13,6 +13,7 @@ var _unique_id := str(Time.get_unix_time_from_system())
 
 func _init() -> void:
 	_network = NETWORK_SCRIPT.new()
+	_network.ws_enabled = false
 	root.add_child(_network)
 	_network.api_key = "test-key"
 	_network.base_url = "http://127.0.0.1:8000"

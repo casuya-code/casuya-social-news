@@ -48,6 +48,14 @@ text = "Anza ili usikie habari za leo"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 14
 
+[node name="LiveLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.55, 0.8, 0.55, 1)
+theme_override_font_sizes/font_size = 12
+
 [node name="HeadlineLabel" type="Label" parent="VBox"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -88,6 +96,44 @@ theme_override_font_sizes/font_size = 12
 [node name="SpacerBottom" type="Control" parent="VBox"]
 custom_minimum_size = Vector2(0, 24)
 layout_mode = 2
+
+[node name="VoteRow" type="HBoxContainer" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="MsisimkoButton" type="Button" parent="VBox/VoteRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Msisimko"
+
+[node name="FurahaButton" type="Button" parent="VBox/VoteRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Furaha"
+
+[node name="WasiwasiButton" type="Button" parent="VBox/VoteRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Wasiwasi"
+
+[node name="UtulivuButton" type="Button" parent="VBox/VoteRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "Utulivu"
+
+[node name="VoteResultLabel" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.773, 0.31, 1)
+theme_override_font_sizes/font_size = 12
 
 [node name="ButtonRow" type="HBoxContainer" parent="VBox"]
 layout_mode = 2

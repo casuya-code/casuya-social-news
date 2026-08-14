@@ -5,6 +5,8 @@ extends Node
 ## Responsibilities:
 ##  - Fetch a script (news -> dialogue) from the server
 ##  - Fetch/synthesize audio for each line
+##  - Live WebSocket updates (Feature #27): state_snapshot + script_delta
+##  - Community voting (Feature #35): cast vote on story direction
 ##  - Offline detection and queued retries (Feature: OfflineDetector)
 
 signal script_loaded(script: Dictionary)
@@ -12,25 +14,104 @@ signal news_loaded(scripts: Array)
 signal script_failed(message: String)
 signal audio_ready(line_index: int, audio: AudioStream)
 signal offline_status_changed(is_offline: bool)
+signal ws_connected
+signal ws_disconnected
+signal ws_state_snapshot(characters: Dictionary)
+signal ws_script_delta(delta: Dictionary)
+signal vote_result(payload: Dictionary)
 
 const DEFAULT_BASE_URL := "http://127.0.0.1:8000"
 const API_PREFIX := "/api/v1"
 const DEFAULT_API_KEY := "dev-api-key"
+const WS_PREFIX := "/api/v1/ws"
+const VOTE_PATH := "/api/v1/economy/vote"
 
 var base_url: String = DEFAULT_BASE_URL
 var api_key: String = DEFAULT_API_KEY
+var client_id: String = "godot-client"
 var is_offline := false
+var ws_enabled := true
 
-var _http: HTTPRequest
+var _ws: WebSocketPeer
+var _ws_open := false
 var _pending: Array[Dictionary] = []
 var _max_retries := 3
 var _retry_delay_s := 1.0
 
 
 func _ready() -> void:
-	_http = HTTPRequest.new()
-	add_child(_http)
-	_http.request_completed.connect(_on_request_completed)
+	if ws_enabled:
+		connect_ws()
+
+
+func _process(_delta: float) -> void:
+	if _ws == null:
+		return
+	_ws.poll()
+	match _ws.get_ready_state():
+		WebSocketPeer.STATE_OPEN:
+			if not _ws_open:
+				_ws_open = true
+				ws_connected.emit()
+			while _ws.get_available_packet_count() > 0:
+				var packet := _ws.get_packet()
+				var message: Variant = JSON.parse_string(packet.get_string_from_utf8())
+				if message is Dictionary:
+					_handle_ws_message(message)
+		WebSocketPeer.STATE_CLOSING, WebSocketPeer.STATE_CLOSED:
+			if _ws_open:
+				_ws_open = false
+				ws_disconnected.emit()
+			_ws = null
+
+
+func _handle_ws_message(message: Dictionary) -> void:
+	match message.get("type", ""):
+		"state_snapshot":
+			ws_state_snapshot.emit(message.get("characters", []))
+		"script_delta":
+			ws_script_delta.emit(message)
+
+
+func connect_ws() -> void:
+	if _ws != null:
+		return
+	var ws_url := _ws_url()
+	_ws = WebSocketPeer.new()
+	_ws_open = false
+	var err := _ws.connect_to_url(ws_url)
+	if err != OK:
+		_ws = null
+		script_failed.emit("WebSocket connect failed (code %d)" % err)
+		return
+
+
+func disconnect_ws() -> void:
+	if _ws != null:
+		_ws.close()
+		_ws = null
+	if _ws_open:
+		_ws_open = false
+		ws_disconnected.emit()
+
+
+func is_ws_connected() -> bool:
+	return _ws != null and _ws.get_ready_state() == WebSocketPeer.STATE_OPEN
+
+
+func _ws_url() -> String:
+	var ws_base := base_url.replace("http://", "ws://").replace("https://", "wss://")
+	return "%s%s?api_key=%s" % [ws_base, WS_PREFIX, api_key]
+
+
+## Cast (or change) this client's vote on a story's direction.
+func cast_vote(script_id: String, direction: String) -> void:
+	var body := JSON.stringify({
+		"script_id": script_id,
+		"client_id": client_id,
+		"direction": direction,
+	})
+	_request("vote", base_url + VOTE_PATH, HTTPClient.METHOD_POST, body)
 
 
 ## Generate a script from a news headline.
@@ -40,41 +121,32 @@ func generate_script(headline: String, source: String, url: String) -> void:
 		"source": source,
 		"url": url,
 	})
-	var headers := _auth_headers(true)
-	var err := _http.request(
-		base_url + API_PREFIX + "/scripts/generate",
-		headers,
-		HTTPClient.METHOD_POST,
-		body
-	)
-	if err != OK:
-		script_failed.emit("Request failed to start (code %d)" % err)
+	_request("generate", base_url + API_PREFIX + "/scripts/generate", HTTPClient.METHOD_POST, body)
 
 
 ## Synthesize audio for every line of a script.
 func generate_audio(script: Dictionary) -> void:
 	var body := JSON.stringify({"script": script})
-	var headers := _auth_headers(true)
-	var err := _http.request(
-		base_url + API_PREFIX + "/scripts/generate-audio",
-		headers,
-		HTTPClient.METHOD_POST,
-		body
-	)
-	if err != OK:
-		script_failed.emit("Audio request failed to start (code %d)" % err)
+	_request("audio", base_url + API_PREFIX + "/scripts/generate-audio", HTTPClient.METHOD_POST, body)
 
 
 ## Pull fresh news and generate a script for each new story ("endless loop").
 func refresh_news() -> void:
-	var headers := _auth_headers(false)
-	var err := _http.request(
-		base_url + API_PREFIX + "/news/refresh",
-		headers,
-		HTTPClient.METHOD_POST
+	_request("news", base_url + API_PREFIX + "/news/refresh", HTTPClient.METHOD_POST)
+
+
+## Fire one request on its own HTTPRequest node (so parallel calls never clash).
+func _request(tag: String, url: String, method: HTTPClient.Method, body: String = "") -> void:
+	var http := HTTPRequest.new()
+	add_child(http)
+	http.request_completed.connect(func(result: int, code: int, headers: PackedStringArray, res_body: PackedByteArray) -> void:
+		_on_request_completed(tag, result, code, headers, res_body)
+		http.queue_free()
 	)
+	var err := http.request(url, _auth_headers(body != ""), method, body)
 	if err != OK:
-		script_failed.emit("News refresh failed to start (code %d)" % err)
+		http.queue_free()
+		script_failed.emit("Request failed to start (code %d)" % err)
 
 
 func _auth_headers(is_json: bool) -> PackedStringArray:
@@ -85,7 +157,7 @@ func _auth_headers(is_json: bool) -> PackedStringArray:
 	return headers
 
 
-func _on_request_completed(result: int, _code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+func _on_request_completed(tag: String, result: int, _code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	if result != HTTPRequest.RESULT_SUCCESS:
 		script_failed.emit("Network error: %d" % result)
 		return
@@ -100,6 +172,10 @@ func _on_request_completed(result: int, _code: int, _headers: PackedStringArray,
 	# The server wraps failures in an envelope; successes come back flat.
 	if data is Dictionary and data.get("success", true) == false:
 		script_failed.emit(data.get("message", "Unknown server error"))
+		return
+
+	if tag == "vote":
+		vote_result.emit(data)
 		return
 
 	if data is Dictionary and data.has("script"):

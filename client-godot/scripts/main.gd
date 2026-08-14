@@ -9,12 +9,19 @@ extends Control
 
 @onready var title_label: Label = %TitleLabel
 @onready var status_label: Label = %StatusLabel
+@onready var live_label: Label = %LiveLabel
 @onready var headline_label: Label = %HeadlineLabel
 @onready var character_label: Label = %CharacterLabel
 @onready var dialogue_label: Label = %DialogueLabel
 @onready var emotion_label: Label = %EmotionLabel
 @onready var start_button: Button = %StartButton
 @onready var next_button: Button = %NextButton
+@onready var vote_row: HBoxContainer = %VoteRow
+@onready var msisimko_button: Button = %MsisimkoButton
+@onready var furaha_button: Button = %FurahaButton
+@onready var wasiwasi_button: Button = %WasiwasiButton
+@onready var utulivu_button: Button = %UtulivuButton
+@onready var vote_result_label: Label = %VoteResultLabel
 @onready var player: AudioStreamPlayer = %AudioPlayer
 
 var _scripts: Array = []
@@ -23,21 +30,73 @@ var _lines: Array = []
 var _audio: Dictionary = {}  # line_index -> AudioStream
 var _line_index := 0
 var _playing := false
+var _voted := false
 
 
 func _ready() -> void:
 	next_button.hide()
+	vote_row.hide()
 	_connect_signals()
 	status_label.text = "Anza ili usikie habari za leo"
+	Network.connect_ws()
 
 
 func _connect_signals() -> void:
 	Network.script_failed.connect(_on_script_failed)
 	Network.news_loaded.connect(_on_news_loaded)
 	Network.audio_ready.connect(_on_audio_ready)
+	Network.ws_connected.connect(_on_ws_connected)
+	Network.ws_disconnected.connect(_on_ws_disconnected)
+	Network.ws_state_snapshot.connect(_on_ws_state_snapshot)
+	Network.ws_script_delta.connect(_on_ws_script_delta)
+	Network.vote_result.connect(_on_vote_result)
 	player.finished.connect(_on_audio_finished)
 	start_button.pressed.connect(_on_start_pressed)
 	next_button.pressed.connect(_on_next_pressed)
+	msisimko_button.pressed.connect(func() -> void: _cast_vote("msisimko"))
+	furaha_button.pressed.connect(func() -> void: _cast_vote("furaha"))
+	wasiwasi_button.pressed.connect(func() -> void: _cast_vote("wasiwasi"))
+	utulivu_button.pressed.connect(func() -> void: _cast_vote("utulivu"))
+
+
+func _on_ws_connected() -> void:
+	live_label.text = "Moja kwa moja: imeunganishwa"
+
+
+func _on_ws_disconnected() -> void:
+	live_label.text = "Moja kwa moja: imekatika"
+
+
+func _on_ws_state_snapshot(characters: Dictionary) -> void:
+	live_label.text = "Wahusika wapo: %d" % characters.size()
+
+
+func _on_ws_script_delta(delta: Dictionary) -> void:
+	# A new story just dropped live; peek without interrupting playback.
+	var headline: String = delta.get("headline", "")
+	if headline != "":
+		live_label.text = "HABARI MPYA: " + headline
+
+
+func _cast_vote(direction: String) -> void:
+	var script_id: String = _current_script.get("script_id", "")
+	if script_id == "":
+		return
+	for button in [msisimko_button, furaha_button, wasiwasi_button, utulivu_button]:
+		button.disabled = true
+	vote_result_label.text = "Kupiga kura..."
+	Network.cast_vote(script_id, direction)
+
+
+func _on_vote_result(payload: Dictionary) -> void:
+	_voted = true
+	var winner: String = payload.get("winner", "")
+	var total: int = payload.get("total", 0)
+	vote_result_label.text = "Ulipiga kura: %s | Ushindi: %s | Jumla: %d" % [
+		payload.get("direction", ""),
+		winner,
+		total,
+	]
 
 
 func _on_start_pressed() -> void:
@@ -61,6 +120,9 @@ func _start_script(script: Dictionary) -> void:
 	_lines = script.get("lines", [])
 	_audio.clear()
 	_line_index = 0
+	_voted = false
+	vote_row.hide()
+	vote_result_label.text = ""
 	status_label.text = "Inaandaa sauti..."
 	headline_label.text = script.get("news_ref", {}).get("headline", "")
 	next_button.hide()
@@ -96,6 +158,11 @@ func _on_audio_finished() -> void:
 	var next := _line_index + 1
 	if next < _lines.size():
 		_play_line(next)
+	elif not _voted:
+		# A story just finished: let the listener steer the community pulse.
+		vote_row.show()
+		for button in [msisimko_button, furaha_button, wasiwasi_button, utulivu_button]:
+			button.disabled = false
 
 
 func _on_next_pressed() -> void:
