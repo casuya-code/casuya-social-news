@@ -99,7 +99,6 @@ server-python/storage/
 # -----------------------------------------------------------------------------
 client-godot/.godot/
 client-godot/export/
-client-godot/export_presets.cfg
 client-godot/imported/
 client-godot/.import/
 client-godot/.godot-bin/
