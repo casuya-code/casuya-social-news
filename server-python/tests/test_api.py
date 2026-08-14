@@ -66,6 +66,21 @@ def test_generate_audio():
         assert "audio_url" in line
 
 
+def test_generate_audio_accepts_float_line_indices():
+    """GDScript clients send floats for JSON ints — indices must be coerced."""
+    gen = client.post("/api/v1/scripts/generate", json=NEWS, headers=AUTH)
+    script = gen.json()["script"]
+    for line in script["lines"]:
+        line["index"] = float(line["index"])
+    r = client.post("/api/v1/scripts/generate-audio", json={"script": script}, headers=AUTH)
+    assert r.status_code == 200
+    lines = r.json()["lines"]
+    assert len(lines) == len(script["lines"])
+    for line in lines:
+        assert isinstance(line["index"], int)
+        assert "audio_url" in line
+
+
 def test_news_latest_requires_key():
     r = client.get("/api/v1/news/latest")
     assert r.status_code == 401

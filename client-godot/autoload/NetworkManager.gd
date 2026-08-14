@@ -95,18 +95,21 @@ func _on_request_completed(result: int, _code: int, _headers: PackedStringArray,
 		script_failed.emit("Malformed JSON from server")
 		return
 
-	var envelope: Dictionary = json.data
-	if not envelope.get("success", false):
-		script_failed.emit(envelope.get("message", "Unknown server error"))
+	var data: Variant = json.data
+
+	# The server wraps failures in an envelope; successes come back flat.
+	if data is Dictionary and data.get("success", true) == false:
+		script_failed.emit(data.get("message", "Unknown server error"))
 		return
 
-	var data: Variant = envelope.get("data")
 	if data is Dictionary and data.has("script"):
 		script_loaded.emit(data["script"])
 	elif data is Dictionary and data.has("lines"):
 		_download_audio_lines(data["lines"])
 	elif data is Dictionary and data.has("scripts"):
 		news_loaded.emit(data["scripts"])
+	else:
+		script_failed.emit("Unexpected server response: %s" % str(data))
 
 
 func _download_audio_lines(lines: Array) -> void:
@@ -120,7 +123,8 @@ func _download_audio(line_index: int, url: String) -> void:
 	add_child(downloader)
 	downloader.request_completed.connect(
 		func(_r: int, _c: int, _h: PackedStringArray, body: PackedByteArray) -> void:
-			var audio := AudioStreamWAV.create_from_wav_bytes(body)
+			var audio := AudioStreamWAV.new()
+			audio.load_from_buffer(body)
 			audio_ready.emit(line_index, audio)
 			downloader.queue_free()
 	)

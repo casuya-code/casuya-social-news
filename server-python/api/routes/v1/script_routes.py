@@ -128,7 +128,8 @@ async def generate_audio(payload: dict) -> GenerateAudioResponse:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     for line in lines:
-        out_path = out_dir / f"{line['index']:02d}.wav"
+        line_index = int(line["index"])
+        out_path = out_dir / f"{line_index:02d}.wav"
         try:
             await provider.synthesize(
                 text=line["text"],
@@ -139,14 +140,14 @@ async def generate_audio(payload: dict) -> GenerateAudioResponse:
             line["audio_url"] = publish_audio(out_path, script["script_id"])
             results.append(
                 AudioLineResponse(
-                    index=line["index"],
+                    index=line_index,
                     character_id=line["character_id"],
                     audio_url=line["audio_url"],
                 )
             )
         except Exception as exc:  # noqa: BLE001
             TTS_REQUESTS.labels(status="error").inc()
-            _logger.error("tts_line_failed", index=line["index"], error=str(exc))
-            raise TTSProviderError(f"TTS synthesis failed for line {line['index']}") from exc
+            _logger.error("tts_line_failed", index=line_index, error=str(exc))
+            raise TTSProviderError(f"TTS synthesis failed for line {line_index}") from exc
 
     return GenerateAudioResponse(script_id=script["script_id"], lines=results)

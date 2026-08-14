@@ -102,11 +102,12 @@ client-godot/export/
 client-godot/export_presets.cfg
 client-godot/imported/
 client-godot/.import/
+client-godot/.godot-bin/
 *.translation
 
 # Godot cache (4.x)
 .godot/
-*.godot.uid
+*.gd.uid
 
 # -----------------------------------------------------------------------------
 # Logs
