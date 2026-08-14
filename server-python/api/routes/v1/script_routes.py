@@ -22,7 +22,7 @@ from monitoring.metrics import SCRIPTS_GENERATED, TTS_REQUESTS
 from nlp.contextualizer import contextualize
 from security.api_key_auth import verify_api_key
 from storage.audio_store import publish_audio
-from storage.script_store import load_script, save_script
+from storage.script_store import list_scripts, load_script, save_script
 from voice.tts_provider import get_provider
 
 _logger = get_logger("api.scripts")
@@ -57,6 +57,30 @@ class NewsInput(BaseModel):
 
 class GenerateResponse(BaseModel):
     script: dict
+
+
+class ScriptSummary(BaseModel):
+    script_id: str
+    headline: str
+    direction: str | None = None
+    created_at: str | None = None
+    line_count: int = 0
+
+
+class ScriptListResponse(BaseModel):
+    scripts: list[ScriptSummary]
+    count: int
+
+
+def _summarize(script: dict) -> ScriptSummary:
+    """Thin projection of a stored script for list browsing."""
+    return ScriptSummary(
+        script_id=script.get("script_id", ""),
+        headline=script.get("news_ref", {}).get("headline", ""),
+        direction=script.get("metadata", {}).get("direction"),
+        created_at=script.get("metadata", {}).get("generated_at"),
+        line_count=len(script.get("lines", [])),
+    )
 
 
 class AudioLineResponse(BaseModel):
@@ -107,6 +131,22 @@ async def generate_script(payload: NewsInput) -> GenerateResponse:
         _logger.warning("db_persist_failed", error=str(exc))
 
     return GenerateResponse(script=script)
+
+
+@router.get("", response_model=ScriptListResponse)
+async def list_scripts_endpoint(limit: int = 20) -> ScriptListResponse:
+    """Return recently generated scripts (newest first) for operator browsing.
+
+    Scripts are persisted to the file-backed store during generation and
+    ingest; this endpoint lists them with a lightweight summary (no full
+    line payloads). Limit is clamped to [1, 100].
+    """
+    limit = max(1, min(limit, 100))
+    scripts = list_scripts(limit=limit)
+    return ScriptListResponse(
+        scripts=[_summarize(s) for s in scripts],
+        count=len(scripts),
+    )
 
 
 @router.get("/{script_id}", response_model=GenerateResponse)

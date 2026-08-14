@@ -10,6 +10,7 @@ python-multipart==0.0.20
 sqlalchemy[asyncio]==2.0.52
 asyncpg==0.31.0              # PostgreSQL async driver
 alembic==1.19.1              # Database migrations
+aiosqlite==0.22.1            # Local SQLite driver (alembic tests / offline dev)
 
 # Caching (optional — falls back to in-memory if Redis unavailable)
 redis==8.1.0

@@ -112,3 +112,12 @@ class MemoryEvent(Base):
     summary: Mapped[str] = mapped_column(Text)
     emotion: Mapped[str] = mapped_column(String(32))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AppMeta(Base):
+    """Key/value metadata (schema version, feature flags, app bootstraps)."""
+
+    __tablename__ = "app_meta"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[str] = mapped_column(Text, default="")

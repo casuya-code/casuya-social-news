@@ -87,6 +87,34 @@ def test_fetch_script_not_found():
     assert r.json()["error_code"] == "E3001"
 
 
+def test_list_scripts_requires_key():
+    r = client.get("/api/v1/scripts")
+    assert r.status_code == 401
+
+
+def test_list_scripts_ok():
+    gen = client.post("/api/v1/scripts/generate", json=NEWS, headers=AUTH)
+    script = gen.json()["script"]
+    r = client.get("/api/v1/scripts", headers=AUTH)
+    assert r.status_code == 200
+    body = r.json()
+    assert body["count"] >= 1
+    ids = [s["script_id"] for s in body["scripts"]]
+    assert script["script_id"] in ids
+    entry = next(s for s in body["scripts"] if s["script_id"] == script["script_id"])
+    assert entry["headline"] == NEWS["headline"]
+    assert entry["line_count"] == len(script["lines"])
+    assert entry["created_at"]  # metadata.generated_at projected
+
+
+def test_list_scripts_limit_clamped():
+    r = client.get("/api/v1/scripts?limit=9999", headers=AUTH)
+    assert r.status_code == 200
+    assert r.json()["count"] <= 100
+    r2 = client.get("/api/v1/scripts?limit=0", headers=AUTH)
+    assert r2.status_code == 200
+
+
 def test_generate_audio_accepts_float_line_indices():
     """GDScript clients send floats for JSON ints — indices must be coerced."""
     gen = client.post("/api/v1/scripts/generate", json=NEWS, headers=AUTH)
