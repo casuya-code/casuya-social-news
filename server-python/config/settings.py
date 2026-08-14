@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 1440
     jwt_refresh_token_expire_days: int = 30
     api_key: str = "dev-api-key"
+    # Operator credentials used by the JWT login flow (no user table yet).
+    admin_username: str = "admin"
+    admin_password: str = "admin"
 
     # TTS
     tts_provider: str = "mock"  # mock | google_cloud | elevenlabs

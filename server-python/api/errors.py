@@ -46,6 +46,11 @@ class UnauthorizedError(APIError):
     error_code = "E4001"
 
 
+class TokenExpiredError(APIError):
+    status_code = 401
+    error_code = "E4002"
+
+
 class DatabaseError(APIError):
     status_code = 500
     error_code = "E3002"

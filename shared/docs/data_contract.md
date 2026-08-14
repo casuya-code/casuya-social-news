@@ -16,8 +16,24 @@ plan.
 - Every request carries an `X-API-Key` header (see `.env.example` → `API_KEY`).
 - WebSocket connects authenticate via `?api_key=` query parameter; a bad key
   closes the socket with code **4401**.
+- Operator sessions authenticate with a JWT access token via
+  `Authorization: Bearer <token>` instead of the API key (see `/auth/login`).
 - No browser origin/CORS is required — this is a native Godot client.
-- Failed auth returns envelope with `error_code: "E4001"` (HTTP 401).
+- Failed auth returns envelope with `error_code: "E4001"` (HTTP 401);
+  expired JWTs return `"E4002"`.
+
+### JWT Session Flow
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/v1/auth/login` | `{username, password}` (operator creds from settings) → `{access_token, refresh_token, expires_in}` |
+| `POST /api/v1/auth/refresh` | Bearer refresh token → new token pair (rotation) |
+| `GET /api/v1/auth/me` | Bearer access token → operator claims (`sub`, `token_type`) |
+
+- Access tokens expire after `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` (default 24h);
+  refresh tokens after `JWT_REFRESH_TOKEN_EXPIRE_DAYS` (default 30d).
+- Each token carries a unique `jti` (for rotation/revocation tracking).
+- A valid access token works on every `/api/v1` route in place of the API key.
 
 ## Rate Limits
 
@@ -98,6 +114,9 @@ client merges them into its local state.
 
 | Method | Path | Purpose |
 |---|---|---|
+| POST | `/auth/login` | Operator credentials → JWT token pair |
+| POST | `/auth/refresh` | Rotate refresh token into a new pair |
+| GET | `/auth/me` | Operator claims for the current access token |
 | GET | `/health` | Dependency status (db/cache/tts), circuit snapshot, scheduler state |
 | POST | `/scripts/generate` | News JSON → script (cache keyed by URL) |
 | POST | `/scripts/generate-audio` | Script → WAV files, returns audio URLs |
@@ -130,7 +149,8 @@ Implemented error codes:
 | `E2001` | TTS provider failure |
 | `E3001` | Not found |
 | `E3002` | Database unreachable |
-| `E4001` | Invalid/missing API key |
+| `E4001` | Invalid/missing API key or token |
+| `E4002` | JWT expired |
 | `E4003` | Rate limit exceeded |
 
 ## Versioning

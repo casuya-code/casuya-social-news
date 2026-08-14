@@ -35,6 +35,18 @@ def test_generate_requires_key():
     assert r.status_code == 401
 
 
+def test_generate_with_operator_jwt():
+    login = client.post("/api/v1/auth/login", json={"username": "admin", "password": "admin"})
+    token = login.json()["access_token"]
+    r = client.post(
+        "/api/v1/scripts/generate",
+        json=NEWS,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    assert r.json()["script"]["news_ref"]["headline"] == NEWS["headline"]
+
+
 def test_generate_script():
     r = client.post("/api/v1/scripts/generate", json=NEWS, headers=AUTH)
     assert r.status_code == 200
