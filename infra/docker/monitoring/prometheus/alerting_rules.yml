@@ -1,0 +1,57 @@
+# Casuya Social News — alerting rules
+groups:
+  - name: casuya-server
+    rules:
+      - alert: ServerDown
+        expr: up{job="casuya-server"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Casuya server is unreachable"
+          description: "Prometheus could not scrape {{ $labels.instance }} for over a minute."
+
+      - alert: SchedulerStopped
+        expr: casuya_scheduler_running == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Story scheduler is not running"
+          description: "The endless-stories loop has been stopped for over 5 minutes."
+
+      - alert: SchedulerFailing
+        expr: rate(casuya_scheduler_errors_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Scheduler cycles failing"
+          description: "The ingest loop has been erroring for over 5 minutes."
+
+      - alert: TTSFailures
+        expr: rate(casuya_tts_requests_total{status="error"}[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "TTS synthesis failing"
+          description: "TTS requests are erroring; check the circuit breaker state."
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, sum(rate(casuya_http_request_duration_seconds_bucket[5m])) by (le, path)) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Slow request path"
+          description: "The 95th percentile latency for {{ $labels.path }} exceeds 5s."
+
+      - alert: NoVotesRecorded
+        expr: increase(casuya_votes_recorded_total[1h]) == 0 and up{job="casuya-server"} == 1
+        for: 6h
+        labels:
+          severity: info
+        annotations:
+          summary: "Community voting silent"
+          description: "No community votes in the last 6 hours."

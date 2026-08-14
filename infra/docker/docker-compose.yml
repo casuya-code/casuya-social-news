@@ -1,5 +1,7 @@
 # Casuya Social News — infrastructure
-# Usage: docker compose up -d postgres redis
+# Usage: docker compose up -d
+#   Brings up Postgres, Redis, Prometheus, and Grafana together.
+#   Prometheus scrapes the server's /metrics endpoint on localhost:8000.
 
 services:
   postgres:
@@ -32,6 +34,70 @@ services:
       timeout: 5s
       retries: 5
 
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    container_name: casuya-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      - server
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: casuya-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: casuya
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/casuya.json
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards/casuya.json:/var/lib/grafana/dashboards/casuya.json:ro
+      - grafana_data:/var/lib/grafana
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # The server itself, so the full observability loop runs out of the box.
+  server:
+    build:
+      context: ../../server-python
+      dockerfile: ../infra/docker/Dockerfile.server
+    container_name: casuya-server
+    environment:
+      API_KEY: dev-api-key
+      SCHEDULER_ENABLED: "true"
+      SCHEDULER_INTERVAL_SECONDS: "60"
+      TTS_PROVIDER: mock
+      APP_ENV: development
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request;urllib.request.urlopen('http://localhost:8000/')"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      - postgres
+      - redis
+
 volumes:
   postgres_data:
   redis_data:
+  prometheus_data:
+  grafana_data:
