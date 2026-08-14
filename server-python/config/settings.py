@@ -77,6 +77,9 @@ class Settings(BaseSettings):
     # Background scheduler (endless-stories loop)
     scheduler_enabled: bool = True
     scheduler_interval_seconds: int = 300
+    # scheduler_backend: "inprocess" runs the asyncio loop inside the server;
+    # "celery" defers ingestion to a Celery worker + beat (Redis broker).
+    scheduler_backend: str = "inprocess"
 
     # Logging
     log_level: str = "INFO"

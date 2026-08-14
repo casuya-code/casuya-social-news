@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
     """Startup/shutdown lifecycle."""
     # Ensure storage directory exists for audio assets.
     _settings.storage_dir.mkdir(parents=True, exist_ok=True)
-    if _settings.scheduler_enabled:
+    if _settings.scheduler_enabled and _settings.scheduler_backend == "inprocess":
         await scheduler.start()
     try:
         yield
