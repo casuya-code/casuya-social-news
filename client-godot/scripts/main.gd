@@ -24,7 +24,7 @@ extends Control
 @onready var wasiwasi_button: Button = %WasiwasiButton
 @onready var utulivu_button: Button = %UtulivuButton
 @onready var vote_result_label: Label = %VoteResultLabel
-@onready var player: AudioStreamPlayer = %AudioPlayer
+@onready var drama: OverlapSpeechPlayer = %DramaPlayer
 @onready var operator_button: Button = %OperatorButton
 
 const OPERATOR_SCENE := preload("res://scenes/operator.tscn")
@@ -93,7 +93,8 @@ func _connect_signals() -> void:
 	Network.ws_state_snapshot.connect(_on_ws_state_snapshot)
 	Network.ws_script_delta.connect(_on_ws_script_delta)
 	Network.vote_result.connect(_on_vote_result)
-	player.finished.connect(_on_audio_finished)
+	drama.line_started.connect(_on_line_started)
+	drama.sequence_finished.connect(_on_audio_finished)
 	start_button.pressed.connect(_on_start_pressed)
 	listen_button.pressed.connect(_on_listen_pressed)
 	next_button.pressed.connect(_on_next_pressed)
@@ -212,10 +213,11 @@ func _on_audio_ready(line_index: int, audio: AudioStream) -> void:
 		status_label.text = ""
 		next_button.show()
 		_loading.finish()
-		_play_line(0)
+		_playing = true
+		drama.play(_lines, _audio)
 
 
-func _play_line(index: int) -> void:
+func _on_line_started(index: int) -> void:
 	if index >= _lines.size():
 		return
 	_line_index = index
@@ -224,28 +226,22 @@ func _play_line(index: int) -> void:
 	character_label.text = char_name
 	dialogue_label.text = line.get("text", "")
 	emotion_label.text = "[" + line.get("emotion", "") + "]"
-	var stream: AudioStream = _audio.get(index)
-	if stream:
-		_playing = true
-		player.stream = stream
-		player.play()
+	if line.get("overlap", false):
+		status_label.text = "Wanakata mazungumzo..."
 
 
 func _on_audio_finished() -> void:
 	_playing = false
-	var next := _line_index + 1
-	if next < _lines.size():
-		_play_line(next)
-	else:
-		_busy = false
-		if _listen_mode and not _queue.is_empty():
-			# Live radio: roll straight into the next queued story.
-			_start_script(_queue.pop_front())
-		elif not _voted:
-			# A story just finished: let the listener steer the community pulse.
-			vote_row.show()
-			for button in [msisimko_button, furaha_button, wasiwasi_button, utulivu_button]:
-				button.disabled = false
+	_busy = false
+	status_label.text = ""
+	if _listen_mode and not _queue.is_empty():
+		# Live radio: roll straight into the next queued story.
+		_start_script(_queue.pop_front())
+	elif not _voted:
+		# A story just finished: let the listener steer the community pulse.
+		vote_row.show()
+		for button in [msisimko_button, furaha_button, wasiwasi_button, utulivu_button]:
+			button.disabled = false
 
 
 func _on_next_pressed() -> void:
@@ -277,7 +273,6 @@ func _input(event: InputEvent) -> void:
 	# Space advances to the next line while playing.
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_SPACE and _playing:
-			player.stop()
-			_on_audio_finished()
+			drama.skip()
 		elif event.keycode == KEY_N:
 			_on_next_pressed()

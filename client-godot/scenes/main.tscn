@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://audio/OverlapSpeechPlayer.gd" id="2_drama"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -173,5 +174,6 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Hadithi Mpya"
 
-[node name="AudioPlayer" type="AudioStreamPlayer" parent="."]
+[node name="DramaPlayer" type="Node" parent="."]
 unique_name_in_owner = true
+script = ExtResource("2_drama")
