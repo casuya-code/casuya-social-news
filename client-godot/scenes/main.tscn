@@ -168,6 +168,12 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Msimamizi"
 
+[node name="SettingsButton" type="Button" parent="VBox/ButtonRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Mipangilio"
+
 [node name="NextButton" type="Button" parent="VBox/ButtonRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)

@@ -26,8 +26,10 @@ extends Control
 @onready var vote_result_label: Label = %VoteResultLabel
 @onready var drama: OverlapSpeechPlayer = %DramaPlayer
 @onready var operator_button: Button = %OperatorButton
+@onready var settings_button: Button = %SettingsButton
 
 const OPERATOR_SCENE := preload("res://scenes/operator.tscn")
+const SETTINGS_SCENE := preload("res://scenes/settings.tscn")
 const ToastManagerScene := preload("res://ui/ToastManager.gd")
 const LoadingScreenScene := preload("res://ui/LoadingScreen.gd")
 const OfflineDetectorScene := preload("res://ui/OfflineDetector.gd")
@@ -52,6 +54,8 @@ var _offline: Node
 var _spatial: Node
 var _occlusion: Node
 var _cache: Node
+var _settings: AppSettings
+var _settings_open := false
 
 
 func _ready() -> void:
@@ -90,12 +94,23 @@ func _build_feedback_layers() -> void:
 	Network.cache = _cache
 	add_child(_cache)
 
+	_settings = AppSettings.new()
+	_settings.load_settings()
+	_settings.changed.connect(_on_settings_changed)
+	_apply_settings()
+
+
+func _notify(message: String, is_error := false, duration := 3.0) -> void:
+	if _settings != null and not _settings.notifications_enabled():
+		return
+	_toasts.show_message(message, is_error, duration)
+
 
 func _on_offline_changed(is_offline: bool) -> void:
 	Network.set_offline(is_offline)
 	offline_banner.visible = is_offline
 	if is_offline:
-		_toasts.show_message("Nje ya mtandao — hadithi zilizohifadhiwa zinapatikana", true, 3.0)
+		_notify("Nje ya mtandao — hadithi zilizohifadhiwa zinapatikana", true, 3.0)
 
 
 func _connect_signals() -> void:
@@ -114,6 +129,7 @@ func _connect_signals() -> void:
 	listen_button.pressed.connect(_on_listen_pressed)
 	next_button.pressed.connect(_on_next_pressed)
 	operator_button.pressed.connect(_on_operator_pressed)
+	settings_button.pressed.connect(_on_settings_pressed)
 	msisimko_button.pressed.connect(func() -> void: _cast_vote("msisimko"))
 	furaha_button.pressed.connect(func() -> void: _cast_vote("furaha"))
 	wasiwasi_button.pressed.connect(func() -> void: _cast_vote("wasiwasi"))
@@ -134,6 +150,26 @@ func _on_operator_pressed() -> void:
 	var panel := OPERATOR_SCENE.instantiate()
 	add_child(panel)
 	panel.tree_exited.connect(func() -> void: _operator_open = false)
+
+
+func _on_settings_pressed() -> void:
+	if _settings_open:
+		return
+	_settings_open = true
+	var panel := SETTINGS_SCENE.instantiate()
+	panel.settings = _settings
+	add_child(panel)
+	panel.tree_exited.connect(func() -> void: _settings_open = false)
+
+
+func _on_settings_changed() -> void:
+	_apply_settings()
+
+
+func _apply_settings() -> void:
+	# Data saving forces low quality; otherwise honour the explicit choice.
+	var effective := AppSettings.AudioQuality.LOW if _settings.data_saving_enabled() else _settings.get_quality()
+	Network.audio_quality = "low" if effective == AppSettings.AudioQuality.LOW else "high"
 
 
 func _on_ws_connected() -> void:
@@ -290,7 +326,7 @@ func _character_name(character_id: String) -> String:
 
 func _on_script_failed(message: String) -> void:
 	status_label.text = "Hitilafu: " + message
-	_toasts.show_message(message, true)
+	_notify(message, true)
 	_loading.finish()
 	start_button.disabled = false
 	next_button.hide()
@@ -302,7 +338,7 @@ func _on_script_failed(message: String) -> void:
 			var replay: Dictionary = _cache.load_script(cached[0])
 			if not replay.is_empty():
 				status_label.text = "Ukirejesha hadithi iliyohifadhiwa..."
-				_toasts.show_message("Hadithi iliyohifadhiwa — inacheza bila mtandao", true, 3.0)
+				_notify("Hadithi iliyohifadhiwa — inacheza bila mtandao", true, 3.0)
 				_start_script(replay)
 
 

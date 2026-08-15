@@ -37,6 +37,7 @@ var client_id: String = "godot-client"
 var is_offline := false
 var ws_enabled := true
 var cache: Node  # OfflineCache instance (optional; wired by main.gd)
+var audio_quality := "high"  # TTS quality param: "high" | "low"
 
 var _ws: WebSocketPeer
 var _ws_open := false
@@ -138,7 +139,7 @@ func generate_script(headline: String, source: String, url: String) -> void:
 ## Synthesize audio for every line of a script.
 func generate_audio(script: Dictionary) -> void:
 	_current_script_id = script.get("script_id", "")
-	var body := JSON.stringify({"script": script})
+	var body := JSON.stringify({"script": script, "quality": audio_quality})
 	_request("audio", base_url + API_PREFIX + "/scripts/generate-audio", HTTPClient.METHOD_POST, body)
 
 
