@@ -24,6 +24,9 @@ extends Control
 @onready var utulivu_button: Button = %UtulivuButton
 @onready var vote_result_label: Label = %VoteResultLabel
 @onready var player: AudioStreamPlayer = %AudioPlayer
+@onready var operator_button: Button = %OperatorButton
+
+const OPERATOR_SCENE := preload("res://scenes/operator.tscn")
 
 var _scripts: Array = []
 var _current_script: Dictionary = {}
@@ -35,6 +38,7 @@ var _voted := false
 var _listen_mode := false
 var _busy := false
 var _queue: Array = []
+var _operator_open := false
 
 
 func _ready() -> void:
@@ -59,6 +63,7 @@ func _connect_signals() -> void:
 	start_button.pressed.connect(_on_start_pressed)
 	listen_button.pressed.connect(_on_listen_pressed)
 	next_button.pressed.connect(_on_next_pressed)
+	operator_button.pressed.connect(_on_operator_pressed)
 	msisimko_button.pressed.connect(func() -> void: _cast_vote("msisimko"))
 	furaha_button.pressed.connect(func() -> void: _cast_vote("furaha"))
 	wasiwasi_button.pressed.connect(func() -> void: _cast_vote("wasiwasi"))
@@ -70,6 +75,15 @@ func _on_listen_pressed() -> void:
 	listen_button.text = "Sikiliza: WASH" if _listen_mode else "Sikiliza"
 	if _listen_mode:
 		status_label.text = "Sikiliza wash — hadithi mpya zitacheza kiotomatiki"
+
+
+func _on_operator_pressed() -> void:
+	if _operator_open:
+		return
+	_operator_open = true
+	var panel := OPERATOR_SCENE.instantiate()
+	add_child(panel)
+	panel.tree_exited.connect(func() -> void: _operator_open = false)
 
 
 func _on_ws_connected() -> void:

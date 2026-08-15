@@ -19,6 +19,9 @@ signal ws_disconnected
 signal ws_state_snapshot(characters: Dictionary)
 signal ws_script_delta(delta: Dictionary)
 signal vote_result(payload: Dictionary)
+signal health_loaded(payload: Dictionary)
+signal script_list_loaded(scripts: Array)
+signal retention_result(payload: Dictionary)
 
 const DEFAULT_BASE_URL := "http://127.0.0.1:8000"
 const API_PREFIX := "/api/v1"
@@ -140,6 +143,30 @@ func fetch_script(script_id: String) -> void:
 	_request("fetch", base_url + API_PREFIX + "/scripts/" + script_id, HTTPClient.METHOD_GET)
 
 
+## Fetch the operator health snapshot (status, dependencies, scheduler).
+func fetch_health() -> void:
+	_request("health", base_url + API_PREFIX + "/health", HTTPClient.METHOD_GET)
+
+
+## Fetch a paginated list of recent scripts for operator/QA browsing.
+func fetch_script_list(limit: int = 10) -> void:
+	_request(
+		"script_list",
+		base_url + API_PREFIX + "/scripts?limit=%d" % limit,
+		HTTPClient.METHOD_GET
+	)
+
+
+## Trigger the retention sweep (or a dry-run preview of it).
+func run_retention(dry_run: bool = false) -> void:
+	var suffix := "?dry_run=true" if dry_run else ""
+	_request(
+		"retention",
+		base_url + API_PREFIX + "/maintenance/retention" + suffix,
+		HTTPClient.METHOD_POST
+	)
+
+
 ## Fire one request on its own HTTPRequest node (so parallel calls never clash).
 func _request(tag: String, url: String, method: HTTPClient.Method, body: String = "") -> void:
 	var http := HTTPRequest.new()
@@ -185,6 +212,18 @@ func _on_request_completed(tag: String, result: int, _code: int, _headers: Packe
 
 	if tag == "fetch":
 		script_loaded.emit(data.get("script", {}))
+		return
+
+	if tag == "health":
+		health_loaded.emit(data)
+		return
+
+	if tag == "script_list":
+		script_list_loaded.emit(data.get("scripts", []))
+		return
+
+	if tag == "retention":
+		retention_result.emit(data)
 		return
 
 	if data is Dictionary and data.has("script"):

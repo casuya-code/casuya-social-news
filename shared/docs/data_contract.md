@@ -9,6 +9,7 @@ plan.
 | Channel | Direction | Protocol | Used For |
 |---|---|---|---|
 | REST API | Client → Server | HTTPS + JSON | Generate script, synthesize audio, fetch/refresh news, vote, weather |
+| REST API | Client → Server (operator view) | HTTPS + JSON | Health snapshot, recent-scripts list, retention trigger (dry-run + live) from the in-client `Msimamizi` panel |
 | WebSocket | Server → Client | WSS + JSON | Live `state_snapshot` on connect + `script_delta` pushes (Feature #27) |
 
 ## Authentication
