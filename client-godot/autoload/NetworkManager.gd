@@ -25,6 +25,7 @@ signal script_list_loaded(scripts: Array)
 signal retention_result(payload: Dictionary)
 signal retry_scheduled(tag: String, attempt: int, delay_s: float)
 signal weather_loaded(payload: Dictionary)
+signal influence_loaded(payload: Dictionary)
 
 const DEFAULT_BASE_URL := "http://127.0.0.1:8000"
 const API_PREFIX := "/api/v1"
@@ -126,6 +127,15 @@ func cast_vote(script_id: String, direction: String) -> void:
 		"direction": direction,
 	})
 	_request("vote", base_url + VOTE_PATH, HTTPClient.METHOD_POST, body)
+
+
+## Fetch how many distinct stories this client has steered via votes.
+func fetch_influence() -> void:
+	_request(
+		"influence",
+		base_url + API_PREFIX + "/economy/influence/" + client_id,
+		HTTPClient.METHOD_GET
+	)
 
 
 ## Generate a script from a news headline.
@@ -248,6 +258,10 @@ func _on_request_completed(tag: String, result: int, _code: int, _headers: Packe
 
 	if tag == "vote":
 		vote_result.emit(data)
+		return
+
+	if tag == "influence":
+		influence_loaded.emit(data)
 		return
 
 	if tag == "fetch":

@@ -133,6 +133,7 @@ func _connect_signals() -> void:
 	Network.ws_state_snapshot.connect(_on_ws_state_snapshot)
 	Network.ws_script_delta.connect(_on_ws_script_delta)
 	Network.vote_result.connect(_on_vote_result)
+	Network.influence_loaded.connect(_on_influence_loaded)
 	Network.weather_loaded.connect(_on_weather_loaded)
 	drama.line_started.connect(_on_line_started)
 	drama.sequence_finished.connect(_on_audio_finished)
@@ -235,6 +236,19 @@ func _on_vote_result(payload: Dictionary) -> void:
 		winner,
 		total,
 	]
+	Network.fetch_influence()
+
+
+func _on_influence_loaded(payload: Dictionary) -> void:
+	var influenced: int = payload.get("scripts_influenced", 0)
+	var client: String = payload.get("client_id", "")
+	if vote_result_label.text != "":
+		vote_result_label.text += " | Ushawishi: %d" % influenced
+	else:
+		vote_result_label.text = "Ushawishi wako: %d hadithi" % influenced
+	# A client_id back from the server confirms our identity reached it.
+	if client != "":
+		vote_result_label.text += " (%s)" % client
 
 
 func _on_weather_loaded(payload: Dictionary) -> void:
