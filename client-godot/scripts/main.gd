@@ -27,6 +27,8 @@ extends Control
 @onready var operator_button: Button = %OperatorButton
 
 const OPERATOR_SCENE := preload("res://scenes/operator.tscn")
+const ToastManagerScene := preload("res://ui/ToastManager.gd")
+const LoadingScreenScene := preload("res://ui/LoadingScreen.gd")
 
 var _scripts: Array = []
 var _current_script: Dictionary = {}
@@ -39,14 +41,29 @@ var _listen_mode := false
 var _busy := false
 var _queue: Array = []
 var _operator_open := false
+var _loading: Control
+var _toasts: VBoxContainer
 
 
 func _ready() -> void:
 	next_button.hide()
 	vote_row.hide()
 	_connect_signals()
+	_build_feedback_layers()
 	status_label.text = "Anza ili usikie habari za leo"
 	Network.connect_ws()
+
+
+func _build_feedback_layers() -> void:
+	_loading = LoadingScreenScene.new()
+	_loading.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_loading)
+
+	_toasts = ToastManagerScene.new()
+	_toasts.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	_toasts.offset_top = -120
+	_toasts.offset_bottom = -16
+	add_child(_toasts)
 
 
 func _connect_signals() -> void:
@@ -166,14 +183,18 @@ func _start_script(script: Dictionary) -> void:
 	status_label.text = "Inaandaa sauti..."
 	headline_label.text = script.get("news_ref", {}).get("headline", "")
 	next_button.hide()
+	_loading.set_progress(0, _lines.size())
+	_loading.show_screen()
 	Network.generate_audio(script)
 
 
 func _on_audio_ready(line_index: int, audio: AudioStream) -> void:
 	_audio[line_index] = audio
+	_loading.set_progress(_audio.size(), _lines.size())
 	if _audio.size() == _lines.size():
 		status_label.text = ""
 		next_button.show()
+		_loading.finish()
 		_play_line(0)
 
 
@@ -229,6 +250,8 @@ func _character_name(character_id: String) -> String:
 
 func _on_script_failed(message: String) -> void:
 	status_label.text = "Hitilafu: " + message
+	_toasts.show_message(message, true)
+	_loading.finish()
 	start_button.disabled = false
 	next_button.hide()
 
