@@ -98,3 +98,9 @@ func _close() -> void:
 	Network.script_list_loaded.disconnect(_on_script_list_loaded)
 	Network.retention_result.disconnect(_on_retention_result)
 	queue_free()
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_ESCAPE:
+			_close()

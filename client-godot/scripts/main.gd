@@ -10,6 +10,7 @@ extends Control
 @onready var title_label: Label = %TitleLabel
 @onready var status_label: Label = %StatusLabel
 @onready var live_label: Label = %LiveLabel
+@onready var offline_banner: Label = %OfflineBanner
 @onready var headline_label: Label = %HeadlineLabel
 @onready var character_label: Label = %CharacterLabel
 @onready var dialogue_label: Label = %DialogueLabel
@@ -29,6 +30,7 @@ extends Control
 const OPERATOR_SCENE := preload("res://scenes/operator.tscn")
 const ToastManagerScene := preload("res://ui/ToastManager.gd")
 const LoadingScreenScene := preload("res://ui/LoadingScreen.gd")
+const OfflineDetectorScene := preload("res://ui/OfflineDetector.gd")
 
 var _scripts: Array = []
 var _current_script: Dictionary = {}
@@ -43,6 +45,7 @@ var _queue: Array = []
 var _operator_open := false
 var _loading: Control
 var _toasts: VBoxContainer
+var _offline: Node
 
 
 func _ready() -> void:
@@ -64,6 +67,20 @@ func _build_feedback_layers() -> void:
 	_toasts.offset_top = -120
 	_toasts.offset_bottom = -16
 	add_child(_toasts)
+
+	_offline = OfflineDetectorScene.new()
+	_offline.base_url = Network.base_url
+	_offline.api_key = Network.api_key
+	add_child(_offline)
+	_offline.status_changed.connect(_on_offline_changed)
+	_offline.start()
+
+
+func _on_offline_changed(is_offline: bool) -> void:
+	Network.set_offline(is_offline)
+	offline_banner.visible = is_offline
+	if is_offline:
+		_toasts.show_message("Nje ya mtandao — hadithi zilizohifadhiwa zinapatikana", true, 3.0)
 
 
 func _connect_signals() -> void:
