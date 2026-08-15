@@ -134,6 +134,7 @@ func _connect_signals() -> void:
 	Network.ws_script_delta.connect(_on_ws_script_delta)
 	Network.vote_result.connect(_on_vote_result)
 	Network.influence_loaded.connect(_on_influence_loaded)
+	Network.vote_stats_loaded.connect(_on_vote_stats_loaded)
 	Network.weather_loaded.connect(_on_weather_loaded)
 	drama.line_started.connect(_on_line_started)
 	drama.sequence_finished.connect(_on_audio_finished)
@@ -288,7 +289,20 @@ func _start_script(script: Dictionary) -> void:
 	next_button.hide()
 	_loading.set_progress(0, _lines.size())
 	_loading.show_screen()
+	# Show how the community is already leaning on this story (if any votes).
+	Network.fetch_vote_stats(script.get("script_id", ""))
 	Network.generate_audio(script)
+
+
+func _on_vote_stats_loaded(payload: Dictionary) -> void:
+	if _current_script.get("script_id", "") != payload.get("script_id", ""):
+		return  # Stale response for a story we've moved past.
+	var total: int = payload.get("total", 0)
+	var winner: String = payload.get("winner", "")
+	if total == 0:
+		vote_result_label.text = "Hakuna kura bado — kuwa wa kwanza!"
+	else:
+		vote_result_label.text = "Jumuiya: %d kura | Kiongozi: %s" % [total, winner]
 
 
 func _on_audio_ready(line_index: int, audio: AudioStream) -> void:

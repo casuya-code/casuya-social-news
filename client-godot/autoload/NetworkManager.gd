@@ -26,6 +26,7 @@ signal retention_result(payload: Dictionary)
 signal retry_scheduled(tag: String, attempt: int, delay_s: float)
 signal weather_loaded(payload: Dictionary)
 signal influence_loaded(payload: Dictionary)
+signal vote_stats_loaded(payload: Dictionary)
 
 const DEFAULT_BASE_URL := "http://127.0.0.1:8000"
 const API_PREFIX := "/api/v1"
@@ -134,6 +135,15 @@ func fetch_influence() -> void:
 	_request(
 		"influence",
 		base_url + API_PREFIX + "/economy/influence/" + client_id,
+		HTTPClient.METHOD_GET
+	)
+
+
+## Fetch the live tally + winning direction for a story's votes.
+func fetch_vote_stats(script_id: String) -> void:
+	_request(
+		"stats",
+		base_url + API_PREFIX + "/economy/stats/" + script_id,
 		HTTPClient.METHOD_GET
 	)
 
@@ -262,6 +272,10 @@ func _on_request_completed(tag: String, result: int, _code: int, _headers: Packe
 
 	if tag == "influence":
 		influence_loaded.emit(data)
+		return
+
+	if tag == "stats":
+		vote_stats_loaded.emit(data)
 		return
 
 	if tag == "fetch":
