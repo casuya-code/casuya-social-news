@@ -22,12 +22,14 @@ signal vote_result(payload: Dictionary)
 signal health_loaded(payload: Dictionary)
 signal script_list_loaded(scripts: Array)
 signal retention_result(payload: Dictionary)
+signal retry_scheduled(tag: String, attempt: int, delay_s: float)
 
 const DEFAULT_BASE_URL := "http://127.0.0.1:8000"
 const API_PREFIX := "/api/v1"
 const DEFAULT_API_KEY := "dev-api-key"
 const WS_PREFIX := "/api/v1/ws"
 const VOTE_PATH := "/api/v1/economy/vote"
+const REQUEST_TIMEOUT_S := 8.0
 
 var base_url: String = DEFAULT_BASE_URL
 var api_key: String = DEFAULT_API_KEY
@@ -40,9 +42,13 @@ var _ws_open := false
 var _pending: Array[Dictionary] = []
 var _max_retries := 3
 var _retry_delay_s := 1.0
+var _retry: RetryHandler
 
 
 func _ready() -> void:
+	_retry = RetryHandler.new()
+	_retry.max_retries = _max_retries
+	_retry.base_delay_s = _retry_delay_s
 	if ws_enabled:
 		connect_ws()
 
@@ -170,15 +176,37 @@ func run_retention(dry_run: bool = false) -> void:
 ## Fire one request on its own HTTPRequest node (so parallel calls never clash).
 func _request(tag: String, url: String, method: HTTPClient.Method, body: String = "") -> void:
 	var http := HTTPRequest.new()
+	http.timeout = REQUEST_TIMEOUT_S
 	add_child(http)
-	http.request_completed.connect(func(result: int, code: int, headers: PackedStringArray, res_body: PackedByteArray) -> void:
-		_on_request_completed(tag, result, code, headers, res_body)
-		http.queue_free()
+	http.request_completed.connect(
+		func(result: int, code: int, headers: PackedStringArray, res_body: PackedByteArray) -> void:
+			if result != HTTPRequest.RESULT_SUCCESS:
+				if _retry.register_failure(tag):
+					var delay := _retry.delay_for(tag)
+					retry_scheduled.emit(tag, _retry.attempts_for(tag), delay)
+					http.queue_free()
+					_retry_after(tag, url, method, body, delay)
+					return
+				_retry.reset(tag)
+				http.queue_free()
+				script_failed.emit("Network error: %d (after %d retries)" % [
+					result, _max_retries
+				])
+				return
+			_retry.reset(tag)
+			_on_request_completed(tag, result, code, headers, res_body)
+			http.queue_free()
 	)
 	var err := http.request(url, _auth_headers(body != ""), method, body)
 	if err != OK:
 		http.queue_free()
 		script_failed.emit("Request failed to start (code %d)" % err)
+
+
+## Re-issue a transport-failed request after the backoff delay.
+func _retry_after(tag: String, url: String, method: HTTPClient.Method, body: String, delay: float) -> void:
+	var timer := get_tree().create_timer(delay)
+	timer.timeout.connect(func() -> void: _request(tag, url, method, body))
 
 
 func _auth_headers(is_json: bool) -> PackedStringArray:
