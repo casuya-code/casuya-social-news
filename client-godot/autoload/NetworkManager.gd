@@ -12,6 +12,7 @@ extends Node
 signal script_loaded(script: Dictionary)
 signal news_loaded(scripts: Array)
 signal script_failed(message: String)
+signal api_error(error_code: String, message: String)
 signal audio_ready(line_index: int, audio: AudioStream)
 signal offline_status_changed(is_offline: bool)
 signal ws_connected
@@ -235,7 +236,8 @@ func _on_request_completed(tag: String, result: int, _code: int, _headers: Packe
 
 	# The server wraps failures in an envelope; successes come back flat.
 	if data is Dictionary and data.get("success", true) == false:
-		script_failed.emit(data.get("message", "Unknown server error"))
+		var error_code := String(data.get("error_code", "E0000"))
+		api_error.emit(error_code, String(data.get("message", "Unknown server error")))
 		return
 
 	if tag == "vote":

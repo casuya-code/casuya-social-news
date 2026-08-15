@@ -115,6 +115,7 @@ func _on_offline_changed(is_offline: bool) -> void:
 
 func _connect_signals() -> void:
 	Network.script_failed.connect(_on_script_failed)
+	Network.api_error.connect(_on_api_error)
 	Network.script_loaded.connect(_on_script_loaded)
 	Network.news_loaded.connect(_on_news_loaded)
 	Network.audio_ready.connect(_on_audio_ready)
@@ -325,6 +326,16 @@ func _character_name(character_id: String) -> String:
 
 
 func _on_script_failed(message: String) -> void:
+	# Transport-level failures carry no error code.
+	_handle_failure(message)
+
+
+func _on_api_error(error_code: String, _raw_message: String) -> void:
+	# Envelope failures carry a machine-readable code; show friendly Swahili text.
+	_handle_failure(ErrorCatalog.describe(error_code))
+
+
+func _handle_failure(message: String) -> void:
 	status_label.text = "Hitilafu: " + message
 	_notify(message, true)
 	_loading.finish()
