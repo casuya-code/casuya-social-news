@@ -36,6 +36,7 @@ var api_key: String = DEFAULT_API_KEY
 var client_id: String = "godot-client"
 var is_offline := false
 var ws_enabled := true
+var cache: Node  # OfflineCache instance (optional; wired by main.gd)
 
 var _ws: WebSocketPeer
 var _ws_open := false
@@ -43,6 +44,7 @@ var _pending: Array[Dictionary] = []
 var _max_retries := 3
 var _retry_delay_s := 1.0
 var _retry: RetryHandler
+var _current_script_id := ""
 
 
 func _ready() -> void:
@@ -135,6 +137,7 @@ func generate_script(headline: String, source: String, url: String) -> void:
 
 ## Synthesize audio for every line of a script.
 func generate_audio(script: Dictionary) -> void:
+	_current_script_id = script.get("script_id", "")
 	var body := JSON.stringify({"script": script})
 	_request("audio", base_url + API_PREFIX + "/scripts/generate-audio", HTTPClient.METHOD_POST, body)
 
@@ -277,6 +280,8 @@ func _download_audio(line_index: int, url: String) -> void:
 		func(_r: int, _c: int, _h: PackedStringArray, body: PackedByteArray) -> void:
 			var audio := AudioStreamWAV.new()
 			audio.load_from_buffer(body)
+			if cache != null and _current_script_id != "":
+				cache.cache_audio(_current_script_id, line_index, body)
 			audio_ready.emit(line_index, audio)
 			downloader.queue_free()
 	)

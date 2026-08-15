@@ -33,6 +33,7 @@ const LoadingScreenScene := preload("res://ui/LoadingScreen.gd")
 const OfflineDetectorScene := preload("res://ui/OfflineDetector.gd")
 const SpatialScene := preload("res://audio/SpatialAudioManager.gd")
 const OcclusionScene := preload("res://audio/AcousticOcclusion.gd")
+const CacheScene := preload("res://storage/OfflineCache.gd")
 
 var _scripts: Array = []
 var _current_script: Dictionary = {}
@@ -50,6 +51,7 @@ var _toasts: VBoxContainer
 var _offline: Node
 var _spatial: Node
 var _occlusion: Node
+var _cache: Node
 
 
 func _ready() -> void:
@@ -83,6 +85,10 @@ func _build_feedback_layers() -> void:
 	add_child(_spatial)
 	_occlusion = OcclusionScene.new()
 	add_child(_occlusion)
+
+	_cache = CacheScene.new()
+	Network.cache = _cache
+	add_child(_cache)
 
 
 func _on_offline_changed(is_offline: bool) -> void:
@@ -155,6 +161,8 @@ func _on_ws_script_delta(delta: Dictionary) -> void:
 func _on_script_loaded(script: Dictionary) -> void:
 	# A fetched live script (or regenerated one) arrived. Queue if busy,
 	# otherwise play it straight away.
+	if script.get("script_id", "") != "":
+		_cache.cache_script(script)
 	if _busy:
 		_queue.append(script)
 	else:
@@ -190,6 +198,9 @@ func _on_start_pressed() -> void:
 
 func _on_news_loaded(scripts: Array) -> void:
 	_scripts = scripts
+	for script in scripts:
+		if script.get("script_id", "") != "":
+			_cache.cache_script(script)
 	if _scripts.is_empty():
 		status_label.text = "Hakuna habari mpya sasa. Jaribu tena."
 		start_button.disabled = false
@@ -283,6 +294,16 @@ func _on_script_failed(message: String) -> void:
 	_loading.finish()
 	start_button.disabled = false
 	next_button.hide()
+
+	# Offline recovery: replay the most recently cached story.
+	if Network.is_offline:
+		var cached: Array = _cache.list_scripts()
+		if not cached.is_empty():
+			var replay: Dictionary = _cache.load_script(cached[0])
+			if not replay.is_empty():
+				status_label.text = "Ukirejesha hadithi iliyohifadhiwa..."
+				_toasts.show_message("Hadithi iliyohifadhiwa — inacheza bila mtandao", true, 3.0)
+				_start_script(replay)
 
 
 func _input(event: InputEvent) -> void:
