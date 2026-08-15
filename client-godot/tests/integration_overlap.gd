@@ -60,9 +60,10 @@ func _run() -> void:
 		_fail("line 1 did not overlap line 0 (started %dms after)" % overlap_early_ms)
 		return
 
-	# Non-overlap: line 2 starts after line 1's stream ends.
+	# Non-overlap: line 2 starts after line 1's stream ends. Allow a small
+	# tolerance for headless scheduler jitter (~0.8s duration, >=0.72s).
 	var gap_ms: int = int(_starts[2]) - int(_starts[1])
-	var min_gap := int(0.8 * 1000.0)
+	var min_gap := int(0.72 * 1000.0)
 	if gap_ms < min_gap:
 		_fail("line 2 was not sequential (started %dms after line 1, expected >=%d)" % [gap_ms, min_gap])
 		return

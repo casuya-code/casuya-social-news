@@ -27,6 +27,7 @@ extends Control
 @onready var drama: OverlapSpeechPlayer = %DramaPlayer
 @onready var operator_button: Button = %OperatorButton
 @onready var settings_button: Button = %SettingsButton
+@onready var weather_label: Label = %WeatherLabel
 
 const OPERATOR_SCENE := preload("res://scenes/operator.tscn")
 const SETTINGS_SCENE := preload("res://scenes/settings.tscn")
@@ -56,6 +57,7 @@ var _occlusion: Node
 var _cache: Node
 var _settings: AppSettings
 var _settings_open := false
+var _weather_mood := 0.0
 
 
 func _ready() -> void:
@@ -99,6 +101,13 @@ func _build_feedback_layers() -> void:
 	_settings.changed.connect(_on_settings_changed)
 	_apply_settings()
 
+	_fetch_weather()
+
+
+func _fetch_weather() -> void:
+	weather_label.show_unknown()
+	Network.fetch_weather()
+
 
 func _notify(message: String, is_error := false, duration := 3.0) -> void:
 	if _settings != null and not _settings.notifications_enabled():
@@ -124,6 +133,7 @@ func _connect_signals() -> void:
 	Network.ws_state_snapshot.connect(_on_ws_state_snapshot)
 	Network.ws_script_delta.connect(_on_ws_script_delta)
 	Network.vote_result.connect(_on_vote_result)
+	Network.weather_loaded.connect(_on_weather_loaded)
 	drama.line_started.connect(_on_line_started)
 	drama.sequence_finished.connect(_on_audio_finished)
 	start_button.pressed.connect(_on_start_pressed)
@@ -225,6 +235,10 @@ func _on_vote_result(payload: Dictionary) -> void:
 		winner,
 		total,
 	]
+
+
+func _on_weather_loaded(payload: Dictionary) -> void:
+	weather_label.show_weather(payload)
 
 
 func _on_start_pressed() -> void:

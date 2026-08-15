@@ -24,6 +24,7 @@ signal health_loaded(payload: Dictionary)
 signal script_list_loaded(scripts: Array)
 signal retention_result(payload: Dictionary)
 signal retry_scheduled(tag: String, attempt: int, delay_s: float)
+signal weather_loaded(payload: Dictionary)
 
 const DEFAULT_BASE_URL := "http://127.0.0.1:8000"
 const API_PREFIX := "/api/v1"
@@ -159,6 +160,11 @@ func fetch_health() -> void:
 	_request("health", base_url + API_PREFIX + "/health", HTTPClient.METHOD_GET)
 
 
+## Fetch the current weather + time-of-day mood bias for the drama.
+func fetch_weather() -> void:
+	_request("weather", base_url + API_PREFIX + "/weather", HTTPClient.METHOD_GET)
+
+
 ## Fetch a paginated list of recent scripts for operator/QA browsing.
 func fetch_script_list(limit: int = 10) -> void:
 	_request(
@@ -250,6 +256,10 @@ func _on_request_completed(tag: String, result: int, _code: int, _headers: Packe
 
 	if tag == "health":
 		health_loaded.emit(data)
+		return
+
+	if tag == "weather":
+		weather_loaded.emit(data)
 		return
 
 	if tag == "script_list":
