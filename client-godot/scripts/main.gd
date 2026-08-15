@@ -31,6 +31,8 @@ const OPERATOR_SCENE := preload("res://scenes/operator.tscn")
 const ToastManagerScene := preload("res://ui/ToastManager.gd")
 const LoadingScreenScene := preload("res://ui/LoadingScreen.gd")
 const OfflineDetectorScene := preload("res://ui/OfflineDetector.gd")
+const SpatialScene := preload("res://audio/SpatialAudioManager.gd")
+const OcclusionScene := preload("res://audio/AcousticOcclusion.gd")
 
 var _scripts: Array = []
 var _current_script: Dictionary = {}
@@ -46,6 +48,8 @@ var _operator_open := false
 var _loading: Control
 var _toasts: VBoxContainer
 var _offline: Node
+var _spatial: Node
+var _occlusion: Node
 
 
 func _ready() -> void:
@@ -74,6 +78,11 @@ func _build_feedback_layers() -> void:
 	add_child(_offline)
 	_offline.status_changed.connect(_on_offline_changed)
 	_offline.start()
+
+	_spatial = SpatialScene.new()
+	add_child(_spatial)
+	_occlusion = OcclusionScene.new()
+	add_child(_occlusion)
 
 
 func _on_offline_changed(is_offline: bool) -> void:
@@ -228,6 +237,13 @@ func _on_line_started(index: int) -> void:
 	emotion_label.text = "[" + line.get("emotion", "") + "]"
 	if line.get("overlap", false):
 		status_label.text = "Wanakata mazungumzo..."
+
+	# Spatial + acoustic treatment for this line's voice.
+	var voice := drama.get_active_player()
+	var char_id: String = line.get("character_id", "")
+	var emotion: String = line.get("emotion", "")
+	_spatial.apply_to(voice, char_id)
+	_occlusion.apply_to(voice, char_id, emotion)
 
 
 func _on_audio_finished() -> void:

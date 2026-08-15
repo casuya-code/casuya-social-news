@@ -10,7 +10,7 @@ signal sequence_finished
 
 const OVERLAP_LEAD_S := 0.35  ## how early an overlapping line starts (before prev ends)
 
-var _players: Array[AudioStreamPlayer] = []
+var _players: Array[AudioStreamPlayer3D] = []
 var _active_player := 0
 var _lines: Array = []
 var _audio: Dictionary = {}  # index -> AudioStream
@@ -21,7 +21,7 @@ var _seq := 0
 
 func _ready() -> void:
 	for i in 2:
-		var player := AudioStreamPlayer.new()
+		var player := AudioStreamPlayer3D.new()
 		add_child(player)
 		_players.append(player)
 		player.finished.connect(func() -> void: _on_player_finished(i))
@@ -137,6 +137,11 @@ func _stop_players() -> void:
 
 func get_active_player_index() -> int:
 	return _active_player
+
+
+## The AudioStreamPlayer3D currently carrying this line's voice (for pan/echo).
+func get_active_player() -> AudioStreamPlayer3D:
+	return _players[_active_player]
 
 
 func is_talking_over() -> bool:

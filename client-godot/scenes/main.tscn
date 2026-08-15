@@ -177,3 +177,6 @@ text = "Hadithi Mpya"
 [node name="DramaPlayer" type="Node" parent="."]
 unique_name_in_owner = true
 script = ExtResource("2_drama")
+
+[node name="AudioListener3D" type="AudioListener3D" parent="."]
+unique_name_in_owner = true
