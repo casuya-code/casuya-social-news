@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Casuya Social News — Operator Console</title>
+<style>
+  :root { --bg:#0f1420; --panel:#1a2130; --line:#2a3550; --txt:#e6ecf5; --muted:#8a97ad; --acc:#4cc38a; --warn:#e0a23c; --bad:#e0605f; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--txt); }
+  header { padding:18px 24px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:16px; }
+  header h1 { font-size:18px; margin:0; font-weight:600; }
+  header .env { color:var(--muted); font-size:12px; }
+  main { padding:24px; display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:18px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .panel h2 { margin:0 0 12px; font-size:14px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .badge { display:inline-block; padding:2px 10px; border-radius:99px; font-size:12px; font-weight:600; }
+  .ok { background:rgba(76,195,138,.15); color:var(--acc); }
+  .down { background:rgba(224,96,95,.15); color:var(--bad); }
+  .warn { background:rgba(224,162,60,.15); color:var(--warn); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:8px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; }
+  tr:last-child td { border-bottom:none; }
+  button { background:var(--acc); color:#0b0f18; border:none; border-radius:8px; padding:8px 14px; font-weight:600; cursor:pointer; font-size:13px; }
+  button.secondary { background:var(--line); color:var(--txt); }
+  button.danger { background:var(--bad); color:#fff; }
+  button:disabled { opacity:.5; cursor:default; }
+  input { background:#0f1420; border:1px solid var(--line); color:var(--txt); border-radius:8px; padding:8px 12px; font-size:13px; width:100%; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .muted { color:var(--muted); font-size:12px; }
+  .empty { color:var(--muted); font-style:italic; padding:8px 0; }
+  .mono { font-family:ui-monospace,Consolas,monospace; font-size:12px; }
+  pre { background:#0f1420; border:1px solid var(--line); border-radius:8px; padding:12px; overflow:auto; max-height:220px; font-size:12px; }
+  .flash { position:fixed; right:16px; bottom:16px; background:var(--panel); border:1px solid var(--line); padding:12px 18px; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,.4); opacity:0; transition:opacity .3s; max-width:420px; }
+  .flash.show { opacity:1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Casuya Social News</h1>
+  <span class="env">Operator Console</span>
+  <span id="conn" class="badge warn">offline</span>
+  <span style="flex:1"></span>
+  <button id="refreshBtn" class="secondary">Refresh</button>
+</header>
+
+<main>
+  <section class="panel" id="healthPanel">
+    <h2>Service Health</h2>
+    <div class="row" style="gap:8px">
+      <span class="badge" id="healthStatus">—</span>
+      <span class="muted mono" id="appEnv"></span>
+    </div>
+    <table style="margin-top:10px">
+      <tr><th>Dependency</th><th>Status</th></tr>
+      <tr><td>Database</td><td><span class="badge" id="depDatabase">—</span></td></tr>
+      <tr><td>Cache</td><td><span class="badge" id="depCache">—</span></td></tr>
+      <tr><td>TTS</td><td><span class="badge" id="depTts">—</span></td></tr>
+    </table>
+    <h2 style="margin-top:16px">Scheduler</h2>
+    <table>
+      <tr><td>Running</td><td id="schedRunning">—</td></tr>
+      <tr><td>Cycles</td><td id="schedCycles">—</td></tr>
+      <tr><td>Stories</td><td id="schedStories">—</td></tr>
+      <tr><td>Retention runs</td><td id="schedRetention">—</td></tr>
+      <tr><td>Circuit</td><td id="schedCircuit">—</td></tr>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>Actions</h2>
+    <div class="row">
+      <button id="refreshNewsBtn">Refresh News</button>
+      <button id="retentionBtn" class="danger">Run Retention</button>
+      <button id="retentionDryBtn" class="secondary">Retention (dry-run)</button>
+    </div>
+    <div class="muted" style="margin-top:10px">Auth: API key <span class="mono" id="apiKeyLabel"></span> + operator JWT</div>
+    <div class="row" style="margin-top:12px">
+      <input id="apiKeyInput" placeholder="API key (X-API-Key)" value="test-key">
+    </div>
+    <h2 style="margin-top:16px">Auth Session</h2>
+    <table>
+      <tr><td>JWT expires</td><td class="mono" id="jwtExpiry">—</td></tr>
+    </table>
+    <div class="row" style="margin-top:12px">
+      <input id="opUser" placeholder="Operator username" style="flex:1">
+      <input id="opPass" type="password" placeholder="Password" style="flex:1">
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="loginBtn" class="secondary" style="flex:1">Log in</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Recent Scripts <span class="muted" id="scriptCount"></span></h2>
+    <table>
+      <thead><tr><th>Headline</th><th>Lines</th><th>Created</th></tr></thead>
+      <tbody id="scriptsBody"><tr><td colspan="3" class="empty">Loading…</td></tr></tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>Ingested News <span class="muted" id="newsCount"></span></h2>
+    <table>
+      <thead><tr><th>Headline</th><th>Source</th><th>Published</th></tr></thead>
+      <tbody id="newsBody"><tr><td colspan="3" class="empty">Loading…</td></tr></tbody>
+    </table>
+  </section>
+</main>
+
+<div id="flash" class="flash"></div>
+
+<script>
+const API = "";
+let token = null;
+let apiKey = "test-key";
+let accessToken = "";
+
+const $ = (id) => document.getElementById(id);
+
+function flash(msg, isError=false) {
+  const el = $("flash");
+  el.textContent = msg;
+  el.style.borderColor = isError ? "var(--bad)" : "var(--line)";
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+async function api(path, opts={}) {
+  const headers = { ...(opts.headers||{}) };
+  headers["X-API-Key"] = apiKey;
+  if (opts.json) headers["Content-Type"] = "application/json";
+  if (accessToken) headers["Authorization"] = "Bearer " + accessToken;
+  const res = await fetch(API + path, { ...opts, headers });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error_code + " " + (body.message || res.status));
+  return body;
+}
+
+async function login() {
+  const username = $("opUser").value.trim() || "";
+  const password = $("opPass").value;
+  if (!username || !password) {
+    flash("Enter operator credentials to log in", true);
+    return;
+  }
+  try {
+    const r = await api("/api/v1/auth/login", {
+      method: "POST",
+      json: true,
+      body: JSON.stringify({ username, password }),
+    });
+    accessToken = r.access_token;
+    const exp = new Date(Date.now() + r.expires_in * 1000).toISOString();
+    $("jwtExpiry").textContent = exp;
+    $("conn").textContent = "online";
+    $("conn").className = "badge ok";
+  } catch (e) {
+    $("conn").textContent = "offline";
+    $("conn").className = "badge down";
+    flash("Login failed: " + e.message, true);
+  }
+}
+
+function badge(state) {
+  if (state === "ok") return '<span class="badge ok">ok</span>';
+  if (state === "down") return '<span class="badge down">down</span>';
+  return '<span class="badge warn">' + (state||"unknown") + '</span>';
+}
+
+async function loadHealth() {
+  try {
+    const h = await api("/api/v1/health");
+    const deps = h.dependencies || {};
+    $("healthStatus").textContent = h.status;
+    $("healthStatus").className = "badge " + (h.status === "ok" ? "ok" : "warn");
+    $("appEnv").textContent = h.app_env;
+    $("depDatabase").outerHTML = badge(deps.database);
+    $("depCache").outerHTML = badge(deps.cache);
+    $("depTts").outerHTML = badge(deps.tts);
+    const s = h.scheduler || {};
+    $("schedRunning").textContent = s.running ? "yes" : "no";
+    $("schedCycles").textContent = s.cycles_completed;
+    $("schedStories").textContent = s.stories_generated;
+    $("schedRetention").textContent = s.retention_runs;
+    $("schedCircuit").textContent = (h.circuit && h.circuit.state) || "—";
+  } catch (e) { flash("Health: " + e.message, true); }
+}
+
+async function loadScripts() {
+  try {
+    const r = await api("/api/v1/scripts?limit=15");
+    $("scriptCount").textContent = "(" + r.count + ")";
+    const tbody = $("scriptsBody");
+    tbody.innerHTML = "";
+    if (!r.scripts.length) { tbody.innerHTML = '<tr><td colspan="3" class="empty">No scripts yet</td></tr>'; return; }
+    for (const s of r.scripts) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = "<td>" + escapeHtml(s.headline) + "</td>" +
+        "<td>" + (s.line_count ?? 0) + "</td>" +
+        '<td class="mono">' + (s.created_at || "—").slice(0, 19).replace("T"," ") + "</td>";
+      tbody.appendChild(tr);
+    }
+  } catch (e) { flash("Scripts: " + e.message, true); }
+}
+
+async function loadNews() {
+  try {
+    const r = await api("/api/v1/news/latest");
+    const arts = r.articles || [];
+    $("newsCount").textContent = "(" + r.count + ")";
+    const tbody = $("newsBody");
+    tbody.innerHTML = "";
+    if (!arts.length) { tbody.innerHTML = '<tr><td colspan="3" class="empty">No articles ingested yet</td></tr>'; return; }
+    for (const a of arts) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = "<td>" + escapeHtml(a.headline) + "</td>" +
+        "<td>" + escapeHtml(a.source) + "</td>" +
+        '<td class="mono">' + (a.published_at || "—").slice(0, 19).replace("T"," ") + "</td>";
+      tbody.appendChild(tr);
+    }
+  } catch (e) { flash("News: " + e.message, true); }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+
+async function refreshAll() {
+  await Promise.all([loadHealth(), loadScripts(), loadNews()]);
+}
+
+$("refreshBtn").addEventListener("click", refreshAll);
+$("loginBtn").addEventListener("click", async () => { await login(); await refreshAll(); });
+$("apiKeyInput").addEventListener("change", (e) => { apiKey = e.target.value || apiKey; $("apiKeyLabel").textContent = apiKey; });
+
+$("refreshNewsBtn").addEventListener("click", async () => {
+  try {
+    const r = await api("/api/v1/news/refresh", { method: "POST", json: true, body: "{}" });
+    flash("Ingested " + (r.ingested || 0) + " new stories");
+    await refreshAll();
+  } catch (e) { flash("Refresh failed: " + e.message, true); }
+});
+
+$("retentionBtn").addEventListener("click", async () => {
+  try {
+    const r = await api("/api/v1/maintenance/retention", { method: "POST" });
+    flash("Retention: audio purged " + r.audio.purged + ", articles deleted " + r.articles_deleted + ", scripts compressed " + r.scripts_compressed);
+    await refreshAll();
+  } catch (e) { flash("Retention failed: " + e.message, true); }
+});
+
+$("retentionDryBtn").addEventListener("click", async () => {
+  try {
+    const r = await api("/api/v1/maintenance/retention?dry_run=true", { method: "POST" });
+    flash("Dry-run: would purge " + r.audio.purged + " audio dirs, delete " + r.articles_deleted + " articles");
+  } catch (e) { flash("Dry-run failed: " + e.message, true); }
+});
+
+$("apiKeyLabel").textContent = apiKey;
+refreshAll();
+</script>
+</body>
+</html>

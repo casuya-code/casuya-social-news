@@ -24,6 +24,22 @@ def test_root():
     assert r.json()["service"] == "casuya-social-news"
 
 
+def test_operator_dashboard_served():
+    r = client.get("/operator")
+    assert r.status_code == 200
+    assert "Operator Console" in r.text
+    assert "auth/login" in r.text
+    assert "maintenance/retention" in r.text
+
+
+def test_operator_dashboard_not_under_api_auth():
+    # The console page itself is served anonymously; its API calls carry auth.
+    r = client.get("/operator")
+    assert r.status_code == 200
+    assert "X-API-Key" in r.text
+    assert "Authorization" in r.text
+
+
 def test_health_requires_key():
     r = client.get("/api/v1/health")
     assert r.status_code == 401

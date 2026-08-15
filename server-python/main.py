@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Response
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.handlers import register_exception_handlers
@@ -63,6 +65,15 @@ app.include_router(api_v1_router)
 async def root() -> dict:
     """Simple root route for sanity checks."""
     return {"service": "casuya-social-news", "docs": "/docs"}
+
+
+_OPERATOR_HTML = Path(__file__).resolve().parent / "static" / "operator.html"
+
+
+@app.get("/operator", include_in_schema=False)
+async def operator_dashboard() -> Response:
+    """Serve the operator console (JWT-authenticated in the browser)."""
+    return HTMLResponse(_OPERATOR_HTML.read_text(encoding="utf-8"))
 
 
 @app.get("/metrics", include_in_schema=False)

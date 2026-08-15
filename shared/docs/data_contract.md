@@ -21,6 +21,9 @@ plan.
 - No browser origin/CORS is required — this is a native Godot client.
 - Failed auth returns envelope with `error_code: "E4001"` (HTTP 401);
   expired JWTs return `"E4002"`.
+- The operator console (a browser page) logs in with the JWT itself and sends
+  both `X-API-Key` and `Authorization` headers; it is served at
+  `GET /operator` (no auth on the page itself).
 
 ### JWT Session Flow
 
