@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://audio/OverlapSpeechPlayer.gd" id="2_drama"]
 [ext_resource type="Script" path="res://ui/WeatherWidget.gd" id="3_weather"]
 [ext_resource type="Script" path="res://ui/NewsTicker.gd" id="4_ticker"]
+[ext_resource type="Script" path="res://ui/CastPanel.gd" id="5_cast"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -76,6 +77,12 @@ horizontal_alignment = 1
 theme_override_colors/font_color = Color(0.5, 0.62, 0.7, 1)
 theme_override_font_sizes/font_size = 12
 script = ExtResource("3_weather")
+
+[node name="CastPanel" type="VBoxContainer" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 4
+script = ExtResource("5_cast")
 
 [node name="OfflineBanner" type="Label" parent="VBox"]
 unique_name_in_owner = true

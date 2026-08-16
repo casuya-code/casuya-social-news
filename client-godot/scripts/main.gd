@@ -29,6 +29,7 @@ extends Control
 @onready var operator_button: Button = %OperatorButton
 @onready var settings_button: Button = %SettingsButton
 @onready var weather_label: Label = %WeatherLabel
+@onready var cast_panel: VBoxContainer = %CastPanel
 
 const OPERATOR_SCENE := preload("res://scenes/operator.tscn")
 const SETTINGS_SCENE := preload("res://scenes/settings.tscn")
@@ -196,6 +197,7 @@ func _on_ws_disconnected() -> void:
 
 func _on_ws_state_snapshot(characters: Dictionary) -> void:
 	live_label.text = "Wahusika wapo: %d" % characters.size()
+	cast_panel.set_snapshot(characters)
 
 
 func _on_ws_script_delta(delta: Dictionary) -> void:
@@ -203,6 +205,7 @@ func _on_ws_script_delta(delta: Dictionary) -> void:
 	if headline != "":
 		live_label.text = "HABARI MPYA: " + headline
 		ticker.push(headline)
+	cast_panel.apply_deltas(delta.get("characters_delta", []))
 	if _listen_mode:
 		var script_id: String = delta.get("script_id", "")
 		if script_id != "":
@@ -214,6 +217,7 @@ func _on_script_loaded(script: Dictionary) -> void:
 	# otherwise play it straight away.
 	if script.get("script_id", "") != "":
 		_cache.cache_script(script)
+		cast_panel.register_script(script)
 		var news_ref: Dictionary = script.get("news_ref", {})
 		if news_ref.get("headline", "") != "":
 			ticker.push(news_ref["headline"])
@@ -274,6 +278,7 @@ func _on_news_loaded(scripts: Array) -> void:
 	for script in scripts:
 		if script.get("script_id", "") != "":
 			_cache.cache_script(script)
+			cast_panel.register_script(script)
 		var news_ref: Dictionary = script.get("news_ref", {})
 		if news_ref.get("headline", "") != "":
 			ticker.push(news_ref["headline"])
