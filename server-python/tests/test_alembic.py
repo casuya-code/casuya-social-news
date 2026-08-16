@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from alembic import command
 from alembic.config import Config
-from database.models import AppMeta, Character, MemoryEvent, NewsArticle, Script, Vote
+from database.models import AppMeta, Character, MemoryEvent, NewsArticle, Script, User, Vote
 
 
 def _alembic_config(db_url: str) -> Config:
@@ -43,6 +43,7 @@ def test_upgrade_head_creates_all_tables(tmp_path):
             MemoryEvent.__tablename__,
             NewsArticle.__tablename__,
             Script.__tablename__,
+            User.__tablename__,
             Vote.__tablename__,
         }
         assert expected <= names

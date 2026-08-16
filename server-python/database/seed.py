@@ -10,7 +10,7 @@ from __future__ import annotations
 from config.logging_config import get_logger
 from database.engine import SessionLocal
 from database.models import Character, User
-from nlp.contextualizer import _CAST
+from nlp.contextualizer import CAST
 from security.password import hash_password
 
 _logger = get_logger("database.seed")
@@ -23,7 +23,7 @@ async def seed_characters() -> None:
     """
     try:
         async with SessionLocal() as session:
-            for char in _CAST:
+            for char in CAST:
                 existing = await session.get(Character, char["id"])
                 if existing is None:
                     session.add(
@@ -35,7 +35,7 @@ async def seed_characters() -> None:
                         )
                     )
             await session.commit()
-        _logger.info("seed_characters_ok", count=len(_CAST))
+        _logger.info("seed_characters_ok", count=len(CAST))
     except Exception as exc:  # noqa: BLE001 — Postgres may be down; pipeline survives
         _logger.warning("seed_characters_skipped", error=str(exc))
 

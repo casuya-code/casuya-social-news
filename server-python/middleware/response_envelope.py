@@ -19,7 +19,13 @@ _SKIP_PREFIXES = ("/storage", "/metrics", "/docs", "/openapi.json", "/redoc")
 
 
 class ResponseEnvelopeMiddleware:
-    """ASGI middleware that wraps 2xx JSON responses in the standard envelope."""
+    """ASGI middleware that wraps 2xx JSON responses in the standard envelope.
+
+    **Known limitation:** Only non-chunked (single-body) JSON responses are
+    wrapped. If a future endpoint streams JSON in multiple ``http.response.body``
+    chunks, the middleware silently passes the body through unwrapped. This is
+    acceptable because no current endpoint streams JSON.
+    """
 
     def __init__(self, app):
         self.app = app

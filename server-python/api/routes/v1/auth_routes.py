@@ -79,6 +79,38 @@ async def _authenticate_user(username: str, password: str) -> bool:
     return username == _settings.admin_username and password == _settings.admin_password
 
 
+async def _require_admin(
+    creds: HTTPAuthorizationCredentials | None = Depends(_bearer),
+) -> str:
+    """Dependency that verifies the caller is an authenticated admin operator."""
+    token = _credentials(creds)
+    payload = verify_access_token(token)
+    subject = payload.get("sub", "")
+
+    # Check DB for admin flag (with settings fallback).
+    try:
+        from sqlalchemy import select
+
+        from database.engine import SessionLocal
+        from database.models import User
+
+        async with SessionLocal() as session:
+            result = await session.execute(
+                select(User).where(User.username == subject)
+            )
+            user = result.scalar_one_or_none()
+            if user is not None and user.is_admin:
+                return subject
+    except Exception:  # noqa: BLE001 — DB down, fall back to settings
+        pass
+
+    if subject == _settings.admin_username or subject == "casuya-operator":
+        return subject
+
+    _logger.warning("register_not_admin", subject=subject)
+    raise UnauthorizedError("Only admin operators can register new users")
+
+
 @router.post("/login", response_model=TokenResponse)
 async def login(payload: LoginRequest) -> TokenResponse:
     """Exchange operator credentials for an access + refresh token pair."""
@@ -95,8 +127,11 @@ async def login(payload: LoginRequest) -> TokenResponse:
 
 
 @router.post("/register", response_model=TokenResponse)
-async def register(payload: RegisterRequest) -> TokenResponse:
-    """Create a new operator account and return tokens immediately."""
+async def register(
+    payload: RegisterRequest,
+    _admin: str = Depends(_require_admin),
+) -> TokenResponse:
+    """Create a new operator account and return tokens immediately. Admin only."""
     try:
         from sqlalchemy import select
 

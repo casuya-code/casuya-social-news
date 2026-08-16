@@ -1,8 +1,9 @@
 """JWT creation and verification (README auth: E4002 JWT expired).
 
 Operator-style login flow: exchange credentials for a short-lived access
-token plus a long-lived refresh token. There is no user table yet — operator
-credentials live in settings (`admin_username` / `admin_password`).
+token plus a long-lived refresh token. User credentials are stored in the
+``users`` table (bcrypt-hashed). Settings-based fallback exists for
+offline / first-boot scenarios.
 """
 
 from __future__ import annotations

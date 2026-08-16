@@ -21,7 +21,7 @@ from nlp.product_placement import select_placement
 
 _logger = get_logger("nlp.contextualizer")
 
-_CAST: list[dict[str, str]] = [
+CAST: list[dict[str, str]] = [
     {"id": "char_bibi_mkwe", "name": "Bibi Mkwe", "voice_id": "mock_bibi", "mood": "uchangamfu"},
     {"id": "char_mjomba", "name": "Mjomba Juma", "voice_id": "mock_mjomba", "mood": "hasira"},
     {"id": "char_rafiki", "name": "Rafiki Neema", "voice_id": "mock_neema", "mood": "msisimko"},
@@ -148,7 +148,7 @@ def build_mock_script(
     rng = random.Random(news.get("url", "casuya") + str(cast_state or {}) + direction)
     cast_state = cast_state or {}
 
-    cast = _CAST[:]
+    cast = CAST[:]
     rng.shuffle(cast)
     cast = cast[:2]  # two speakers per scene for the MVP
 
@@ -266,7 +266,7 @@ def contextualize(
             "mood_label": mood_label(cast_state.get(c["id"], {}).get("mood", 0.0)),
             "memory": cast_state.get(c["id"], {}).get("memory", ""),
         }
-        for c in _CAST
+        for c in CAST
     ]
 
     llm_script = generate_with_llm(news, cast, direction)

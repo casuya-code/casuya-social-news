@@ -64,4 +64,15 @@ async def health_check(_: str = Depends(verify_api_key)) -> dict:
 
     status["scheduler"] = scheduler.snapshot()
     status["app_env"] = _settings.app_env
+
+    # LLM status
+    llm_status = "unavailable"
+    if _settings.openai_api_key:
+        try:
+            import openai  # noqa: F401
+            llm_status = "ready"
+        except ImportError:
+            llm_status = "missing_package"
+    status["llm"] = llm_status
+
     return status
