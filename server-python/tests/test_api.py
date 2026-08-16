@@ -18,6 +18,14 @@ NEWS = {
 }
 
 
+def _data(response) -> dict | list:
+    """Unwrap the standard envelope and return the inner ``data`` payload."""
+    body = response.json()
+    if isinstance(body, dict) and "data" in body:
+        return body["data"]
+    return body
+
+
 def test_root():
     r = client.get("/")
     assert r.status_code == 200
@@ -53,30 +61,30 @@ def test_generate_requires_key():
 
 def test_generate_with_operator_jwt():
     login = client.post("/api/v1/auth/login", json={"username": "admin", "password": "admin"})
-    token = login.json()["access_token"]
+    token = _data(login)["access_token"]
     r = client.post(
         "/api/v1/scripts/generate",
         json=NEWS,
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r.status_code == 200
-    assert r.json()["script"]["news_ref"]["headline"] == NEWS["headline"]
+    assert _data(r)["script"]["news_ref"]["headline"] == NEWS["headline"]
 
 
 def test_generate_script():
     r = client.post("/api/v1/scripts/generate", json=NEWS, headers=AUTH)
     assert r.status_code == 200
-    script = r.json()["script"]
+    script = _data(r)["script"]
     assert script["version"] == "1.0"
     assert script["news_ref"]["headline"] == NEWS["headline"]
 
 
 def test_generate_audio():
     gen = client.post("/api/v1/scripts/generate", json=NEWS, headers=AUTH)
-    script = gen.json()["script"]
+    script = _data(gen)["script"]
     r = client.post("/api/v1/scripts/generate-audio", json={"script": script}, headers=AUTH)
     assert r.status_code == 200
-    lines = r.json()["lines"]
+    lines = _data(r)["lines"]
     assert len(lines) == len(script["lines"])
     for line in lines:
         assert "audio_url" in line
@@ -89,10 +97,10 @@ def test_fetch_script_requires_key():
 
 def test_fetch_script_ok():
     gen = client.post("/api/v1/scripts/generate", json=NEWS, headers=AUTH)
-    script = gen.json()["script"]
+    script = _data(gen)["script"]
     r = client.get(f"/api/v1/scripts/{script['script_id']}", headers=AUTH)
     assert r.status_code == 200
-    fetched = r.json()["script"]
+    fetched = _data(r)["script"]
     assert fetched["script_id"] == script["script_id"]
     assert fetched["news_ref"]["headline"] == NEWS["headline"]
 
@@ -110,10 +118,10 @@ def test_list_scripts_requires_key():
 
 def test_list_scripts_ok():
     gen = client.post("/api/v1/scripts/generate", json=NEWS, headers=AUTH)
-    script = gen.json()["script"]
+    script = _data(gen)["script"]
     r = client.get("/api/v1/scripts", headers=AUTH)
     assert r.status_code == 200
-    body = r.json()
+    body = _data(r)
     assert body["count"] >= 1
     ids = [s["script_id"] for s in body["scripts"]]
     assert script["script_id"] in ids
@@ -126,7 +134,7 @@ def test_list_scripts_ok():
 def test_list_scripts_limit_clamped():
     r = client.get("/api/v1/scripts?limit=9999", headers=AUTH)
     assert r.status_code == 200
-    assert r.json()["count"] <= 100
+    assert _data(r)["count"] <= 100
     r2 = client.get("/api/v1/scripts?limit=0", headers=AUTH)
     assert r2.status_code == 200
 
@@ -134,12 +142,12 @@ def test_list_scripts_limit_clamped():
 def test_generate_audio_accepts_float_line_indices():
     """GDScript clients send floats for JSON ints — indices must be coerced."""
     gen = client.post("/api/v1/scripts/generate", json=NEWS, headers=AUTH)
-    script = gen.json()["script"]
+    script = _data(gen)["script"]
     for line in script["lines"]:
         line["index"] = float(line["index"])
     r = client.post("/api/v1/scripts/generate-audio", json={"script": script}, headers=AUTH)
     assert r.status_code == 200
-    lines = r.json()["lines"]
+    lines = _data(r)["lines"]
     assert len(lines) == len(script["lines"])
     for line in lines:
         assert isinstance(line["index"], int)
@@ -154,13 +162,13 @@ def test_news_latest_requires_key():
 def test_news_latest_ok():
     r = client.get("/api/v1/news/latest", headers=AUTH)
     assert r.status_code == 200
-    assert "articles" in r.json()
+    assert "articles" in _data(r)
 
 
 def test_news_refresh_ok():
     r = client.post("/api/v1/news/refresh", headers=AUTH)
     assert r.status_code == 200
-    assert "scripts" in r.json()
+    assert "scripts" in _data(r)
 
 
 def test_retention_requires_key():
@@ -171,7 +179,7 @@ def test_retention_requires_key():
 def test_retention_sweep_ok():
     r = client.post("/api/v1/maintenance/retention", headers=AUTH)
     assert r.status_code == 200
-    body = r.json()
+    body = _data(r)
     assert "audio" in body
     assert body["audio"]["dry_run"] is False
     assert "articles_deleted" in body
@@ -181,4 +189,4 @@ def test_retention_sweep_ok():
 def test_retention_dry_run_ok():
     r = client.post("/api/v1/maintenance/retention?dry_run=true", headers=AUTH)
     assert r.status_code == 200
-    assert r.json()["dry_run"] is True
+    assert _data(r)["dry_run"] is True

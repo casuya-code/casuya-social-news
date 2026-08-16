@@ -268,13 +268,16 @@ func _on_request_completed(tag: String, result: int, _code: int, _headers: Packe
 		script_failed.emit("Malformed JSON from server")
 		return
 
-	var data: Variant = json.data
+	var raw: Variant = json.data
 
-	# The server wraps failures in an envelope; successes come back flat.
-	if data is Dictionary and data.get("success", true) == false:
-		var error_code := String(data.get("error_code", "E0000"))
-		api_error.emit(error_code, String(data.get("message", "Unknown server error")))
-		return
+	# Unwrap the standard response envelope: {success, status_code, message, error_code, data}.
+	var data: Variant = raw
+	if raw is Dictionary and raw.has("success"):
+		if raw.get("success", true) == false:
+			var error_code := String(raw.get("error_code", "E0000"))
+			api_error.emit(error_code, String(raw.get("message", "Unknown server error")))
+			return
+		data = raw.get("data", raw)
 
 	if tag == "vote":
 		vote_result.emit(data)

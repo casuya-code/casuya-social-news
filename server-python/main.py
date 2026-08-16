@@ -17,6 +17,7 @@ from config.settings import get_settings
 from database.seed import seed_admin_user, seed_characters
 from middleware.rate_limiter import RateLimiterMiddleware
 from middleware.request_id import RequestIDMiddleware
+from middleware.response_envelope import ResponseEnvelopeMiddleware
 from monitoring.metrics import MetricsMiddleware, render_metrics
 from task_queue.scheduler import IngestScheduler
 
@@ -58,6 +59,7 @@ app = FastAPI(
 )
 
 register_exception_handlers(app)
+app.add_middleware(ResponseEnvelopeMiddleware)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(RateLimiterMiddleware)
 app.add_middleware(MetricsMiddleware)  # outermost → sees every request/response
