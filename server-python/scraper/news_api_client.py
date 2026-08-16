@@ -39,12 +39,11 @@ class NewsApiClient:
 
         params = {
             "q": _QUERY,
-            "language": "sw",
             "sortBy": "publishedAt",
             "pageSize": limit,
             "apiKey": self._api_key,
         }
-        since = (datetime.now(UTC) - timedelta(days=1)).isoformat()
+        since = (datetime.now(UTC) - timedelta(days=1)).strftime("%Y-%m-%d")
         params["from"] = since
 
         last_error: Exception | None = None
