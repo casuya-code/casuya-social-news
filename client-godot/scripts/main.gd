@@ -19,6 +19,7 @@ extends Control
 @onready var start_button: Button = %StartButton
 @onready var listen_button: Button = %ListenButton
 @onready var next_button: Button = %NextButton
+@onready var vote_panel: PanelContainer = %VotePanel
 @onready var vote_row: HBoxContainer = %VoteRow
 @onready var msisimko_button: Button = %MsisimkoButton
 @onready var furaha_button: Button = %FurahaButton
@@ -64,7 +65,7 @@ var _weather_mood := 0.0
 
 func _ready() -> void:
 	next_button.hide()
-	vote_row.hide()
+	vote_panel.hide()
 	_connect_signals()
 	_build_feedback_layers()
 	status_label.text = "Anza ili usikie habari za leo"
@@ -297,7 +298,7 @@ func _start_script(script: Dictionary) -> void:
 	_audio.clear()
 	_line_index = 0
 	_voted = false
-	vote_row.hide()
+	vote_panel.hide()
 	vote_result_label.text = ""
 	status_label.text = "Inaandaa sauti..."
 	headline_label.text = script.get("news_ref", {}).get("headline", "")
@@ -360,7 +361,7 @@ func _on_audio_finished() -> void:
 		_start_script(_queue.pop_front())
 	elif not _voted:
 		# A story just finished: let the listener steer the community pulse.
-		vote_row.show()
+		vote_panel.show()
 		for button in [msisimko_button, furaha_button, wasiwasi_button, utulivu_button]:
 			button.disabled = false
 

@@ -15,7 +15,7 @@ func _init() -> void:
 	_network = NETWORK_SCRIPT.new()
 	_network.ws_enabled = false
 	root.add_child(_network)
-	_network.api_key = "test-key"
+	_network.api_key = "dev-api-key"
 	_network.base_url = "http://127.0.0.1:8000"
 	_network.script_failed.connect(_on_failed)
 	_network.script_loaded.connect(_on_script_loaded)

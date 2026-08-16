@@ -21,7 +21,7 @@ func _run() -> void:
 	# Reachable live server.
 	var live: Node = OfflineDetectorScene.new()
 	live.base_url = "http://127.0.0.1:8000"
-	live.api_key = "test-key"
+	live.api_key = "dev-api-key"
 	live.probe_interval_s = 0.5
 	root.add_child(live)
 	live.status_changed.connect(_on_live_changed)
@@ -30,7 +30,7 @@ func _run() -> void:
 	# Dead port — should flip to offline.
 	var dead: Node = OfflineDetectorScene.new()
 	dead.base_url = "http://127.0.0.1:9"
-	dead.api_key = "test-key"
+	dead.api_key = "dev-api-key"
 	dead.probe_interval_s = 0.5
 	root.add_child(dead)
 	dead.status_changed.connect(_on_dead_changed)

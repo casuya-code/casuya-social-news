@@ -24,7 +24,7 @@ func _run() -> void:
 	_network = NETWORK_SCRIPT.new()
 	_network.ws_enabled = false
 	root.add_child(_network)
-	_network.api_key = "test-key"
+	_network.api_key = "dev-api-key"
 	_network.script_loaded.connect(_on_script_loaded)
 	_network.script_failed.connect(_on_script_failed)
 	_network.retry_scheduled.connect(_on_retry_scheduled)

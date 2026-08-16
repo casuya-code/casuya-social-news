@@ -1,6 +1,44 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3 uid="uid://casuya_op_v2"]
 
 [ext_resource type="Script" path="res://scripts/operator.gd" id="1_op"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
+bg_color = Color(0.12, 0.14, 0.22, 1)
+border_width_bottom = 2
+border_color = Color(0.9, 0.65, 0.2, 0.6)
+content_margin_left = 16
+content_margin_right = 16
+content_margin_top = 12
+content_margin_bottom = 12
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_section"]
+bg_color = Color(0.07, 0.09, 0.14, 0.95)
+border_width_left = 3
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.5, 0.8, 0.4)
+content_margin_left = 14
+content_margin_right = 14
+content_margin_top = 10
+content_margin_bottom = 10
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar"]
+bg_color = Color(0.07, 0.08, 0.13, 1)
+border_width_top = 1
+border_color = Color(0.25, 0.3, 0.45, 0.5)
+content_margin_left = 10
+content_margin_right = 10
+content_margin_top = 8
+content_margin_bottom = 8
 
 [node name="Operator" type="Control"]
 layout_mode = 3
@@ -18,113 +56,149 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.06, 0.07, 0.1, 0.96)
+color = Color(0.04, 0.05, 0.08, 0.97)
 
 [node name="VBox" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 24.0
-offset_top = 40.0
-offset_right = -24.0
-offset_bottom = -40.0
+offset_left = 12.0
+offset_top = 20.0
+offset_right = -12.0
+offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 6
 
-[node name="OpTitle" type="Label" parent="VBox"]
+[node name="HeaderPanel" type="PanelContainer" parent="VBox"]
 layout_mode = 2
-text = "Msimamizi — Jopo la Uendeshaji"
-horizontal_alignment = 1
-theme_override_colors/font_color = Color(1, 0.773, 0.31, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
-[node name="OpStatusLabel" type="Label" parent="VBox"]
+[node name="HeaderVBox" type="VBoxContainer" parent="VBox/HeaderPanel"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="OpTitle" type="Label" parent="VBox/HeaderPanel/HeaderVBox"]
+layout_mode = 2
+text = "MSIMAMIZI — JOPO LA UENDESHAJI"
+horizontal_alignment = 1
+theme_override_colors/font_color = Color(1, 0.82, 0.32, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="OpStatusLabel" type="Label" parent="VBox/HeaderPanel/HeaderVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Inapakia..."
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.55, 0.8, 0.55, 1)
-theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.4, 0.82, 0.5, 1)
+theme_override_font_sizes/font_size = 13
 
-[node name="HealthHeader" type="Label" parent="VBox"]
+[node name="HealthPanel" type="PanelContainer" parent="VBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_section")
+
+[node name="HealthVBox" type="VBoxContainer" parent="VBox/HealthPanel"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="HealthHeader" type="Label" parent="VBox/HealthPanel/HealthVBox"]
 layout_mode = 2
 text = "Hali ya Huduma"
-theme_override_colors/font_color = Color(0.45, 0.5, 0.62, 1)
+theme_override_colors/font_color = Color(0.5, 0.6, 0.75, 1)
 theme_override_font_sizes/font_size = 12
 
-[node name="OpDbLabel" type="Label" parent="VBox"]
+[node name="OpDbLabel" type="Label" parent="VBox/HealthPanel/HealthVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "DB: unknown"
+text = "DB: —"
 theme_override_font_sizes/font_size = 13
 
-[node name="OpCacheLabel" type="Label" parent="VBox"]
+[node name="OpCacheLabel" type="Label" parent="VBox/HealthPanel/HealthVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Cache: unknown"
+text = "Cache: —"
 theme_override_font_sizes/font_size = 13
 
-[node name="OpTtsLabel" type="Label" parent="VBox"]
+[node name="OpTtsLabel" type="Label" parent="VBox/HealthPanel/HealthVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "TTS: unknown"
+text = "TTS: —"
 theme_override_font_sizes/font_size = 13
 
-[node name="OpSchedLabel" type="Label" parent="VBox"]
+[node name="OpSchedLabel" type="Label" parent="VBox/HealthPanel/HealthVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Scheduler: ..."
+text = "Scheduler: —"
 theme_override_font_sizes/font_size = 13
 
-[node name="OpCircuitLabel" type="Label" parent="VBox"]
+[node name="OpCircuitLabel" type="Label" parent="VBox/HealthPanel/HealthVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Mzunguko wa TTS: unknown"
+text = "Mzunguko wa TTS: —"
 theme_override_font_sizes/font_size = 13
 
-[node name="ScriptsHeader" type="Label" parent="VBox"]
+[node name="ScriptsPanel" type="PanelContainer" parent="VBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_section")
+
+[node name="ScriptsVBox" type="VBoxContainer" parent="VBox/ScriptsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ScriptsHeader" type="Label" parent="VBox/ScriptsPanel/ScriptsVBox"]
 layout_mode = 2
 text = "Hadithi za Karibuni"
-theme_override_colors/font_color = Color(0.45, 0.5, 0.62, 1)
+theme_override_colors/font_color = Color(0.5, 0.6, 0.75, 1)
 theme_override_font_sizes/font_size = 12
 
-[node name="OpScriptsBox" type="VBoxContainer" parent="VBox"]
+[node name="OpScriptsBox" type="VBoxContainer" parent="VBox/ScriptsPanel/ScriptsVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
-[node name="NewsHeader" type="Label" parent="VBox"]
+[node name="NewsPanel" type="PanelContainer" parent="VBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_section")
+
+[node name="NewsVBox" type="VBoxContainer" parent="VBox/NewsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="NewsHeader" type="Label" parent="VBox/NewsPanel/NewsVBox"]
 layout_mode = 2
 text = "Habari za Karibuni"
-theme_override_colors/font_color = Color(0.45, 0.5, 0.62, 1)
+theme_override_colors/font_color = Color(0.5, 0.6, 0.75, 1)
 theme_override_font_sizes/font_size = 12
 
-[node name="OpNewsBox" type="VBoxContainer" parent="VBox"]
+[node name="OpNewsBox" type="VBoxContainer" parent="VBox/NewsPanel/NewsVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
-[node name="OpActions" type="HBoxContainer" parent="VBox"]
+[node name="ActionBar" type="PanelContainer" parent="VBox"]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_bar")
+
+[node name="OpActions" type="HBoxContainer" parent="VBox/ActionBar"]
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 
-[node name="OpDryRunButton" type="Button" parent="VBox/OpActions"]
+[node name="OpDryRunButton" type="Button" parent="VBox/ActionBar/OpActions"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(100, 38)
 layout_mode = 2
 text = "Uchambuzi"
 
-[node name="OpRetentionButton" type="Button" parent="VBox/OpActions"]
+[node name="OpRetentionButton" type="Button" parent="VBox/ActionBar/OpActions"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(100, 38)
 layout_mode = 2
 text = "Usafishaji"
 
-[node name="OpCloseButton" type="Button" parent="VBox"]
+[node name="OpCloseButton" type="Button" parent="VBox/ActionBar/OpActions"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(100, 38)
 layout_mode = 2
 text = "Funga"

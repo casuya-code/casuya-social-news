@@ -16,7 +16,7 @@ func _init() -> void:
 	await process_frame
 	var network: Node = root.get_node("Network")
 	network.base_url = "http://127.0.0.1:8000"
-	network.api_key = "test-key"
+	network.api_key = "dev-api-key"
 	network.client_id = "godot-listen"
 	network.script_failed.connect(_on_failed)
 	network.ws_connected.connect(_on_ws_connected)
