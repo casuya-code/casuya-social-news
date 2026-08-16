@@ -94,6 +94,14 @@ class GenerateAudioResponse(BaseModel):
     lines: list[AudioLineResponse]
 
 
+class GenerateAudioRequest(BaseModel):
+    """Request body for /generate-audio. Accepts either script_id or full script."""
+
+    script_id: str | None = None
+    script: dict | None = None
+    quality: str = "high"
+
+
 @router.post("/generate", response_model=GenerateResponse)
 async def generate_script(payload: NewsInput) -> GenerateResponse:
     """Convert a news item into a dramatic script (cached by URL)."""
@@ -164,10 +172,10 @@ async def fetch_script(script_id: str) -> GenerateResponse:
 
 
 @router.post("/generate-audio", response_model=GenerateAudioResponse)
-async def generate_audio(payload: dict) -> GenerateAudioResponse:
+async def generate_audio(payload: GenerateAudioRequest) -> GenerateAudioResponse:
     """Synthesize audio for every line of an already-generated script."""
-    script_id = payload.get("script_id")
-    script = payload.get("script")
+    script_id = payload.script_id
+    script = payload.script
 
     if script is None:
         cache_key = f"script:{script_id}" if script_id else None
@@ -175,7 +183,7 @@ async def generate_audio(payload: dict) -> GenerateAudioResponse:
     if script is None:
         raise InvalidInputError("script or script_id not provided")
 
-    quality = payload.get("quality", "high") if isinstance(payload, dict) else "high"
+    quality = payload.quality
 
     provider = get_provider()
     lines = script.get("lines", [])

@@ -18,6 +18,7 @@ router = APIRouter(dependencies=[Depends(verify_api_key)])
 @router.get("/latest")
 async def latest_news(limit: int = 20) -> dict:
     """Return the most recent ingested articles."""
+    limit = max(1, min(limit, 50))
     articles: list[dict] = []
     try:
         async with SessionLocal() as session:
@@ -46,5 +47,6 @@ async def latest_news(limit: int = 20) -> dict:
 @router.post("/refresh")
 async def refresh_news(limit: int = 10) -> dict:
     """Pull new articles now and generate a script for each fresh story."""
+    limit = max(1, min(limit, 20))
     scripts = await ingest_and_generate(limit=limit)
     return {"ingested": len(scripts), "scripts": scripts}

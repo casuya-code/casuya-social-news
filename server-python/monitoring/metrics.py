@@ -7,6 +7,7 @@ rest of the server (scheduler, economy, ingestor, websockets).
 
 from __future__ import annotations
 
+import time
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -135,7 +136,7 @@ class MetricsMiddleware:
         path = _path_template(scope.get("path", ""))
 
         status = {"code": 500}
-        started = __import__("time").perf_counter()
+        started = time.perf_counter()
 
         async def wrapped_send(message: dict[str, Any]) -> None:
             if message["type"] == "http.response.start":
@@ -144,6 +145,6 @@ class MetricsMiddleware:
 
         await self.app(scope, receive, wrapped_send)
 
-        elapsed = __import__("time").perf_counter() - started
+        elapsed = time.perf_counter() - started
         HTTP_DURATION.labels(method, path).observe(elapsed)
         HTTP_REQUESTS.labels(method, path, status["code"]).inc()

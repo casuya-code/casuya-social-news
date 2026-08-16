@@ -22,18 +22,13 @@ router = APIRouter(dependencies=[Depends(verify_api_key)])
 async def retention_sweep(dry_run: bool = False) -> dict:
     """Run the README retention policy now and report what would be/was cleaned."""
     try:
-        session = SessionLocal()
+        async with SessionLocal() as session:
+            result = await run_retention(dry_run=dry_run, session=session)
     except Exception as exc:  # noqa: BLE001 - DB down → audio-only sweep
-        _logger.warning("maintenance_db_unavailable", error=str(exc))
-        session = None
-
-    try:
-        result = await run_retention(dry_run=dry_run, session=session)
-        _logger.info("retention_sweep_complete", result=result)
-        return result
-    finally:
-        if session is not None:
-            try:
-                await session.close()
-            except Exception:  # noqa: BLE001
-                pass
+        _logger.warning("maintenance_sweep_error", error=str(exc))
+        try:
+            result = await run_retention(dry_run=dry_run, session=None)
+        except Exception as inner_exc:  # noqa: BLE001
+            return {"error": str(inner_exc)}
+    _logger.info("retention_sweep_complete", result=result)
+    return result

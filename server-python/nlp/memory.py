@@ -24,6 +24,7 @@ _MOOD_VALENCE = {
     "anasikitika": -0.5,
     "anajigamba": 0.4,
     "anadhihaki": 0.2,
+    "anaomba_msaada": -0.3,
 }
 
 _DRIFT_DECAY = 0.3  # how much of a single line's emotion moves the baseline

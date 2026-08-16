@@ -39,11 +39,11 @@ def build_character_delta(characters: list[dict], prev_states: dict[str, dict]) 
 def build_script_delta(script: dict, prev_states: dict[str, dict]) -> dict[str, Any]:
     """Compact live-update message for one generated script."""
     character_deltas = build_character_delta(script.get("characters", []), prev_states)
-    script["metadata"]["characters_delta"] = len(character_deltas)
     return {
         "type": "script_delta",
         "script_id": script["script_id"],
         "headline": script.get("news_ref", {}).get("headline", ""),
         "time_of_day": script.get("metadata", {}).get("time_of_day", ""),
         "characters_delta": character_deltas,
+        "characters_delta_count": len(character_deltas),
     }

@@ -56,11 +56,15 @@ class NewsApiClient:
                 _logger.info("news_api_fetch_ok", count=len(articles))
                 return articles
             except httpx.HTTPStatusError as exc:
-                # News API returns 429 when the free-tier quota is exhausted.
                 last_error = exc
                 if exc.response.status_code == 429:
                     _logger.warning("news_api_rate_limited")
                     raise NewsRateLimitedError("news source rate limited") from exc
+                if exc.response.status_code < 500:
+                    _logger.error("news_api_client_error", status=exc.response.status_code)
+                    raise NewsSourceError(
+                        f"news source returned {exc.response.status_code}"
+                    ) from exc
                 _logger.warning("news_api_retry", delay=delay, error=str(exc))
                 await asyncio.sleep(delay)
             except Exception as exc:  # noqa: BLE001 - retry then degrade
