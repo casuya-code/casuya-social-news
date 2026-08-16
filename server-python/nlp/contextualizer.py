@@ -110,12 +110,6 @@ _SLANG = {
     "filler": ["mpaka nini?", "basi na basi.", "sasa hivi tu.", "niliyaona mato!"],
 }
 
-_OPENINGS = [
-    "Hujasikia? Mambo yameendelea leo!",
-    "Wewe, leo kuna habari kubwa!",
-    "Ngoja nikuambie kilichotokea...",
-]
-
 _SLANG_OPENINGS = [
     "Mkuu, kuna jambo la moto!",
     "Mambo! Habari kubwa imefika leo!",

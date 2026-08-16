@@ -15,7 +15,7 @@ from cache.redis_client import cache
 from config.logging_config import get_logger
 from config.settings import get_settings
 from database.engine import SessionLocal
-from database.models import MemoryEvent, NewsArticle
+from database.models import Character, MemoryEvent, NewsArticle
 from economy.vote_service import community_pulse
 from monitoring.metrics import NEWS_INGESTED, SCRIPTS_GENERATED
 from nlp.character_state import load_states, set_states
@@ -167,6 +167,18 @@ async def _persist_memory(script: dict) -> None:
     """Best-effort DB write of MemoryEvent rows + Character mood_drift."""
     try:
         async with SessionLocal() as session:
+            # Ensure every character in the script has a row (FK safety net).
+            for char in script.get("characters", []):
+                char_id = char.get("id", "")
+                if char_id and not await session.get(Character, char_id):
+                    session.add(
+                        Character(
+                            id=char_id,
+                            name=char.get("name", char_id),
+                            voice_id=char.get("voice_id", "default"),
+                            mood_base=char.get("mood", "utulivu"),
+                        )
+                    )
             for line in script.get("lines", []):
                 char_id = line.get("character_id", "")
                 if not char_id:

@@ -142,7 +142,7 @@ def test_mock_tts_raises_e2003_on_write_failure(monkeypatch):
 
     provider = MockProvider()
 
-    def boom_write(path, freq, duration):
+    def boom_write(path, freq, duration, sample_rate):
         raise OSError("disk full")
 
     monkeypatch.setattr("voice.mock_provider._write_tone", boom_write)

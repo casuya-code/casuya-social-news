@@ -20,6 +20,7 @@ _TAGS = [
     "anasikitika",
     "anajigamba",
     "anadhihaki",
+    "anaomba_msaada",
 ]
 
 _INDEX_BASED = {

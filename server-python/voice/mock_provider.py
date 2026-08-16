@@ -13,7 +13,8 @@ from voice.tts_provider import TTSProvider
 
 _settings = get_settings()
 
-SAMPLE_RATE = 8000
+SAMPLE_RATE_HIGH = 16000
+SAMPLE_RATE_LOW = 8000
 DURATION_PER_CHAR = 0.06  # seconds of tone per character
 
 
@@ -26,11 +27,14 @@ class MockProvider(TTSProvider):
 
     name = "mock"
 
-    async def synthesize(self, text: str, voice_id: str, out_path: Path) -> Path:
+    async def synthesize(
+        self, text: str, voice_id: str, out_path: Path, *, quality: str = "high"
+    ) -> Path:
         duration = max(0.5, len(text) * DURATION_PER_CHAR)
         freq = _frequency_for(voice_id)
+        sample_rate = SAMPLE_RATE_HIGH if quality == "high" else SAMPLE_RATE_LOW
         try:
-            _write_tone(out_path, freq, duration)
+            _write_tone(out_path, freq, duration, sample_rate)
         except OSError as exc:  # noqa: BLE001 - disk/path failures are E2003
             raise TTSWriteError(f"audio write failed: {exc}") from exc
         return out_path
@@ -44,15 +48,15 @@ def _frequency_for(voice_id: str) -> float:
     return 200.0 + (abs(hash(voice_id)) % 8) * 40.0
 
 
-def _write_tone(path: Path, freq: float, duration: float) -> None:
+def _write_tone(path: Path, freq: float, duration: float, sample_rate: int) -> None:
     """Write a simple sine-wave WAV file."""
-    n_frames = int(SAMPLE_RATE * duration)
+    n_frames = int(sample_rate * duration)
     with wave.open(str(path), "wb") as wf:
         wf.setnchannels(1)
         wf.setsampwidth(2)
-        wf.setframerate(SAMPLE_RATE)
+        wf.setframerate(sample_rate)
         frames = bytearray()
         for i in range(n_frames):
-            sample = int(12000 * math.sin(2 * math.pi * freq * i / SAMPLE_RATE))
+            sample = int(12000 * math.sin(2 * math.pi * freq * i / sample_rate))
             frames += struct.pack("<h", sample)
         wf.writeframes(bytes(frames))

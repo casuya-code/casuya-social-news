@@ -19,8 +19,14 @@ class TTSProvider(ABC):
     name: str = "base"
 
     @abstractmethod
-    async def synthesize(self, text: str, voice_id: str, out_path: Path) -> Path:
-        """Synthesize text to audio, write it to out_path, return the path."""
+    async def synthesize(
+        self, text: str, voice_id: str, out_path: Path, *, quality: str = "high"
+    ) -> Path:
+        """Synthesize text to audio, write it to out_path, return the path.
+
+        quality: ``"high"`` (default) or ``"low"`` — the provider maps this to
+        sample rate / bitrate / model settings as appropriate.
+        """
         raise NotImplementedError
 
     @abstractmethod

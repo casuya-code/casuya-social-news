@@ -31,9 +31,11 @@ class BreakerTTSProxy(TTSProvider):
     def wrapped_name(self) -> str:
         return self._provider.name
 
-    async def synthesize(self, text: str, voice_id: str, out_path: Path) -> Path:
+    async def synthesize(
+        self, text: str, voice_id: str, out_path: Path, *, quality: str = "high"
+    ) -> Path:
         async def call() -> Path:
-            return await self._provider.synthesize(text, voice_id, out_path)
+            return await self._provider.synthesize(text, voice_id, out_path, quality=quality)
 
         try:
             return await run_with_breaker(_CIRCUIT, call())

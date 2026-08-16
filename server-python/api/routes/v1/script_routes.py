@@ -175,6 +175,8 @@ async def generate_audio(payload: dict) -> GenerateAudioResponse:
     if script is None:
         raise InvalidInputError("script or script_id not provided")
 
+    quality = payload.get("quality", "high") if isinstance(payload, dict) else "high"
+
     provider = get_provider()
     lines = script.get("lines", [])
     voice_map = {c["id"]: c["voice_id"] for c in script.get("characters", [])}
@@ -191,6 +193,7 @@ async def generate_audio(payload: dict) -> GenerateAudioResponse:
                 text=line["text"],
                 voice_id=voice_map.get(line["character_id"], "default"),
                 out_path=out_path,
+                quality=quality,
             )
             TTS_REQUESTS.labels(status="ok").inc()
             line["audio_url"] = publish_audio(out_path, script["script_id"])

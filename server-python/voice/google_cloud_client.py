@@ -38,11 +38,14 @@ class GoogleCloudProvider(TTSProvider):
             self._client = texttospeech.TextToSpeechClient()
         return self._client
 
-    async def synthesize(self, text: str, voice_id: str, out_path: Path) -> Path:
+    async def synthesize(
+        self, text: str, voice_id: str, out_path: Path, *, quality: str = "high"
+    ) -> Path:
         client = self._client_or_raise()
         synthesis_input = {"text": text}
         voice = {"language_code": "sw-SW", "name": voice_id}
-        audio_config = {"audio_encoding": "MP3"}
+        sample_rate = 24000 if quality == "high" else 8000
+        audio_config = {"audio_encoding": "MP3", "sample_rate_hertz": sample_rate}
 
         # Run in a thread; google-cloud client is blocking.
         import asyncio

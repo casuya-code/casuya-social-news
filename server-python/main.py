@@ -14,6 +14,7 @@ from api.handlers import register_exception_handlers
 from api.routes.v1.router import api_v1_router
 from config.logging_config import setup_logging
 from config.settings import get_settings
+from database.seed import seed_characters
 from middleware.rate_limiter import RateLimiterMiddleware
 from middleware.request_id import RequestIDMiddleware
 from monitoring.metrics import MetricsMiddleware, render_metrics
@@ -34,6 +35,7 @@ async def lifespan(app: FastAPI):
     """Startup/shutdown lifecycle."""
     # Ensure storage directory exists for audio assets.
     _settings.storage_dir.mkdir(parents=True, exist_ok=True)
+    await seed_characters()
     if _settings.scheduler_enabled and _settings.scheduler_backend == "inprocess":
         await scheduler.start()
     try:
