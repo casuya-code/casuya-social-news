@@ -52,7 +52,7 @@ class NewsApiClient:
                 async with httpx.AsyncClient(timeout=15.0) as client:
                     response = await client.get(_NEWS_API_ENDPOINT, params=params)
                     response.raise_for_status()
-                articles = response.json().get("articles", [])
+                    articles = response.json().get("articles", [])
                 _logger.info("news_api_fetch_ok", count=len(articles))
                 return articles
             except httpx.HTTPStatusError as exc:

@@ -32,10 +32,10 @@ def _build_app() -> FastAPI:
 def test_path_template_collapses_ids():
     assert (
         _path_template("/api/v1/economy/stats/abc123def456abc123def456abc123de")
-        == "api/v1/economy/stats/{id}"
+        == "/api/v1/economy/stats/{id}"
     )
-    assert _path_template("/api/v1/news/42") == "api/v1/news/{id}"
-    assert _path_template("/") == ""
+    assert _path_template("/api/v1/news/42") == "/api/v1/news/{id}"
+    assert _path_template("/") == "/"
 
 
 def test_metrics_middleware_records_requests():
@@ -45,9 +45,9 @@ def test_metrics_middleware_records_requests():
 
     rendered = render_metrics()[0]
     assert "casuya_http_requests_total" in rendered
-    assert 'method="GET",path="health",status="200"' in rendered
+    assert 'method="GET",path="/health",status="200"' in rendered
     # dynamic path segments are collapsed, so cardinality stays bounded
-    assert 'path="api/v1/economy/stats/{id}"' in rendered
+    assert 'path="/api/v1/economy/stats/{id}"' in rendered
     assert "casuya_http_request_duration_seconds" in rendered
 
 
@@ -55,7 +55,7 @@ def test_metrics_middleware_tracks_status_codes():
     client = TestClient(_build_app())
     client.get("/does-not-exist")
     rendered = render_metrics()[0]
-    assert 'path="does-not-exist",status="404"' in rendered
+    assert 'path="/does-not-exist",status="404"' in rendered
 
 
 def test_application_counters_are_exported():
@@ -76,10 +76,10 @@ def test_application_counters_are_exported():
 
 def test_http_counters_match_histogram():
     # both derive from the same underlying request stream
-    labels = ("GET", "health", "200")
+    labels = ("GET", "/health", "200")
     before = HTTP_REQUESTS.labels(*labels)._value.get()
-    HTTP_DURATION.labels("GET", "health").observe(0.1)
-    assert HTTP_DURATION.labels("GET", "health")._sum.get() >= 0.1
+    HTTP_DURATION.labels("GET", "/health").observe(0.1)
+    assert HTTP_DURATION.labels("GET", "/health")._sum.get() >= 0.1
     HTTP_REQUESTS.labels(*labels).inc()
     after = HTTP_REQUESTS.labels(*labels)._value.get()
     assert after == before + 1

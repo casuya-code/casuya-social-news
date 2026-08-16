@@ -2,10 +2,10 @@
 
 import time
 
+import jwt as pyjwt
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from jose import jwt as jose_jwt
 
 from api.handlers import register_exception_handlers
 from api.routes.v1.auth_routes import router
@@ -69,7 +69,7 @@ def test_me_rejects_missing_or_bad_token(client):
 
 def test_me_rejects_expired_token(client):
     settings = get_settings()
-    expired = jose_jwt.encode(
+    expired = pyjwt.encode(
         {
             "sub": "casuya-operator",
             "type": "access",

@@ -66,11 +66,6 @@ class NewsRateLimitedError(APIError):
     error_code = "E5002"
 
 
-class RateLimitedError(APIError):
-    status_code = 429
-    error_code = "E4003"
-
-
 class UnauthorizedError(APIError):
     status_code = 401
     error_code = "E4001"
@@ -79,11 +74,6 @@ class UnauthorizedError(APIError):
 class TokenExpiredError(APIError):
     status_code = 401
     error_code = "E4002"
-
-
-class DatabaseError(APIError):
-    status_code = 500
-    error_code = "E3002"
 
 
 class MigrationRequiredError(APIError):

@@ -23,8 +23,6 @@ class Settings(BaseSettings):
     # App
     app_env: str = "development"
     app_debug: bool = True
-    app_port: int = 8000
-    app_secret_key: str = "change-me"
 
     # Database (PostgreSQL)
     database_url: str = "postgresql+asyncpg://casuya_user:password@localhost:5432/casuya_db"

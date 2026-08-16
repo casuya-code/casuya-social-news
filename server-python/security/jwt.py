@@ -12,7 +12,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
-from jose import JWTError, jwt
+import jwt as pyjwt
 
 from api.errors import TokenExpiredError, UnauthorizedError
 from config.logging_config import get_logger
@@ -34,7 +34,7 @@ def _encode(payload: dict, expires_delta: timedelta) -> str:
         "iat": now,
         "exp": now + expires_delta,
     }
-    return jwt.encode(to_encode, _settings.jwt_secret_key, algorithm=_settings.jwt_algorithm)
+    return pyjwt.encode(to_encode, _settings.jwt_secret_key, algorithm=_settings.jwt_algorithm)
 
 
 def create_access_token(subject: str = ACCESS_TOKEN_SUBJECT) -> str:
@@ -56,11 +56,13 @@ def create_refresh_token(subject: str = ACCESS_TOKEN_SUBJECT) -> str:
 def decode_token(token: str, *, expected_type: str = TOKEN_TYPE_ACCESS) -> dict[str, Any]:
     """Verify a token's signature, expiry, and type. Raises APIError on failure."""
     try:
-        payload = jwt.decode(token, _settings.jwt_secret_key, algorithms=[_settings.jwt_algorithm])
-    except jwt.ExpiredSignatureError as exc:
+        payload = pyjwt.decode(
+            token, _settings.jwt_secret_key, algorithms=[_settings.jwt_algorithm]
+        )
+    except pyjwt.ExpiredSignatureError as exc:
         _logger.warning("jwt_expired")
         raise TokenExpiredError("Token has expired") from exc
-    except JWTError as exc:
+    except pyjwt.InvalidTokenError as exc:
         _logger.warning("jwt_invalid", reason=str(exc))
         raise UnauthorizedError("Invalid or malformed token") from exc
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 
-from api.errors import DatabaseError  # noqa: F401  (imported for taxonomy docs)
 from cache.redis_client import cache
 from config.logging_config import get_logger
 from config.settings import get_settings

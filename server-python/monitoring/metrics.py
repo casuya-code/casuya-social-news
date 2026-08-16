@@ -101,7 +101,7 @@ SCHEDULER_LAST_DURATION = Gauge(
 
 def _path_template(path: str) -> str:
     """Collapse dynamic path segments so label cardinality stays bounded."""
-    return "/".join(
+    return "/" + "/".join(
         "{id}" if (_is_uuid(segment) or segment.isdigit()) else segment
         for segment in path.strip("/").split("/")
     )
