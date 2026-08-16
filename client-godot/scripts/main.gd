@@ -10,6 +10,7 @@ extends Control
 @onready var title_label: Label = %TitleLabel
 @onready var status_label: Label = %StatusLabel
 @onready var live_label: Label = %LiveLabel
+@onready var ticker: Label = %TickerLabel
 @onready var offline_banner: Label = %OfflineBanner
 @onready var headline_label: Label = %HeadlineLabel
 @onready var character_label: Label = %CharacterLabel
@@ -201,6 +202,7 @@ func _on_ws_script_delta(delta: Dictionary) -> void:
 	var headline: String = delta.get("headline", "")
 	if headline != "":
 		live_label.text = "HABARI MPYA: " + headline
+		ticker.push(headline)
 	if _listen_mode:
 		var script_id: String = delta.get("script_id", "")
 		if script_id != "":
@@ -212,6 +214,9 @@ func _on_script_loaded(script: Dictionary) -> void:
 	# otherwise play it straight away.
 	if script.get("script_id", "") != "":
 		_cache.cache_script(script)
+		var news_ref: Dictionary = script.get("news_ref", {})
+		if news_ref.get("headline", "") != "":
+			ticker.push(news_ref["headline"])
 	if _busy:
 		_queue.append(script)
 	else:
@@ -267,6 +272,9 @@ func _on_news_loaded(scripts: Array) -> void:
 	for script in scripts:
 		if script.get("script_id", "") != "":
 			_cache.cache_script(script)
+		var news_ref: Dictionary = script.get("news_ref", {})
+		if news_ref.get("headline", "") != "":
+			ticker.push(news_ref["headline"])
 	if _scripts.is_empty():
 		status_label.text = "Hakuna habari mpya sasa. Jaribu tena."
 		start_button.disabled = false
