@@ -27,6 +27,7 @@ signal retry_scheduled(tag: String, attempt: int, delay_s: float)
 signal weather_loaded(payload: Dictionary)
 signal influence_loaded(payload: Dictionary)
 signal vote_stats_loaded(payload: Dictionary)
+signal latest_news_loaded(payload: Dictionary)
 
 const DEFAULT_BASE_URL := "http://127.0.0.1:8000"
 const API_PREFIX := "/api/v1"
@@ -170,6 +171,15 @@ func refresh_news() -> void:
 	_request("news", base_url + API_PREFIX + "/news/refresh", HTTPClient.METHOD_POST)
 
 
+## Fetch the most recent ingested news articles (no script generation).
+func fetch_latest_news(limit: int = 20) -> void:
+	_request(
+		"latest_news",
+		base_url + API_PREFIX + "/news/latest?limit=%d" % limit,
+		HTTPClient.METHOD_GET
+	)
+
+
 ## Fetch a previously generated script by id (for live listen mode).
 func fetch_script(script_id: String) -> void:
 	_request("fetch", base_url + API_PREFIX + "/scripts/" + script_id, HTTPClient.METHOD_GET)
@@ -288,6 +298,10 @@ func _on_request_completed(tag: String, result: int, _code: int, _headers: Packe
 
 	if tag == "weather":
 		weather_loaded.emit(data)
+		return
+
+	if tag == "latest_news":
+		latest_news_loaded.emit(data)
 		return
 
 	if tag == "script_list":

@@ -1,7 +1,8 @@
 extends SceneTree
 ## Headless integration test: drives the operator console network calls
 ## against the live server. Verifies fetch_health -> health_loaded,
-## fetch_script_list -> script_list_loaded, run_retention -> retention_result.
+## fetch_script_list -> script_list_loaded, run_retention -> retention_result,
+## fetch_latest_news -> latest_news_loaded.
 
 const NETWORK_SCRIPT := preload("res://autoload/NetworkManager.gd")
 
@@ -9,6 +10,7 @@ var _network: Node
 var _health_ok := false
 var _list_ok := false
 var _retention_ok := false
+var _news_ok := false
 var _passed := false
 
 
@@ -22,6 +24,7 @@ func _init() -> void:
 	_network.health_loaded.connect(_on_health)
 	_network.script_list_loaded.connect(_on_script_list)
 	_network.retention_result.connect(_on_retention)
+	_network.latest_news_loaded.connect(_on_latest_news)
 	print("[TEST] fetching operator health...")
 	await process_frame
 	_network.fetch_health()
@@ -41,6 +44,7 @@ func _on_health(payload: Dictionary) -> void:
 	print("[TEST] scheduler cycles=", sched.get("cycles_completed", 0))
 	_network.fetch_script_list(5)
 	_network.run_retention(true)
+	_network.fetch_latest_news(5)
 
 
 func _on_script_list(scripts: Array) -> void:
@@ -56,10 +60,19 @@ func _on_retention(payload: Dictionary) -> void:
 	_check_done()
 
 
+func _on_latest_news(payload: Dictionary) -> void:
+	_news_ok = true
+	var articles: Array = payload.get("articles", [])
+	print("[TEST] latest_news count=", payload.get("count", 0))
+	for article in articles:
+		print("[TEST]   news:", article.get("headline", "?"), " (", article.get("source", "?"), ")")
+	_check_done()
+
+
 func _check_done() -> void:
-	if not (_health_ok and _list_ok and _retention_ok):
+	if not (_health_ok and _list_ok and _retention_ok and _news_ok):
 		return
-	print("[TEST] PASS — health, script list, and retention dry-run all received")
+	print("[TEST] PASS — health, script list, retention dry-run, and latest news all received")
 	_passed = true
 	quit(0)
 

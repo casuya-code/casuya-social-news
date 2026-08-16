@@ -10,6 +10,7 @@ extends Control
 @onready var sched_label: Label = %OpSchedLabel
 @onready var circuit_label: Label = %OpCircuitLabel
 @onready var scripts_box: VBoxContainer = %OpScriptsBox
+@onready var news_box: VBoxContainer = %OpNewsBox
 @onready var close_button: Button = %OpCloseButton
 @onready var retention_button: Button = %OpRetentionButton
 @onready var dry_run_button: Button = %OpDryRunButton
@@ -21,6 +22,7 @@ func _ready() -> void:
 	Network.health_loaded.connect(_on_health_loaded)
 	Network.script_list_loaded.connect(_on_script_list_loaded)
 	Network.retention_result.connect(_on_retention_result)
+	Network.latest_news_loaded.connect(_on_latest_news_loaded)
 	close_button.pressed.connect(_close)
 	retention_button.pressed.connect(func() -> void: Network.run_retention(false))
 	dry_run_button.pressed.connect(func() -> void: Network.run_retention(true))
@@ -31,6 +33,7 @@ func _refresh_all() -> void:
 	status_label.text = "Inapakia..."
 	Network.fetch_health()
 	Network.fetch_script_list(10)
+	Network.fetch_latest_news(10)
 
 
 func _on_health_loaded(payload: Dictionary) -> void:
@@ -79,6 +82,27 @@ func _add_script_row(text: String) -> void:
 	scripts_box.add_child(row)
 
 
+func _on_latest_news_loaded(payload: Dictionary) -> void:
+	for child in news_box.get_children():
+		child.queue_free()
+	var articles: Array = payload.get("articles", [])
+	if articles.is_empty():
+		_add_news_row("Hakuna habari bado")
+		return
+	for article in articles:
+		var source: String = article.get("source", "")
+		var headline: String = article.get("headline", "")
+		_add_news_row("%s  (%s)" % [headline, source])
+
+
+func _add_news_row(text: String) -> void:
+	var row := Label.new()
+	row.text = text
+	row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	row.add_theme_color_override("font_color", Color(0.7, 0.75, 0.55, 1))
+	news_box.add_child(row)
+
+
 func _on_retention_result(payload: Dictionary) -> void:
 	var audio: Dictionary = payload.get("audio", {})
 	var dry_run: bool = payload.get("dry_run", false)
@@ -97,6 +121,7 @@ func _close() -> void:
 	Network.health_loaded.disconnect(_on_health_loaded)
 	Network.script_list_loaded.disconnect(_on_script_list_loaded)
 	Network.retention_result.disconnect(_on_retention_result)
+	Network.latest_news_loaded.disconnect(_on_latest_news_loaded)
 	queue_free()
 
 
