@@ -18,6 +18,18 @@ from config.logging_config import get_logger
 from nlp.emotion_tagger import tag_line
 from nlp.memory import mood_label
 from nlp.product_placement import select_placement
+from nlp.templates import (
+    CAST,
+    CLOSINGS,
+    CLOSINGS_BY_DIRECTION,
+    MEMORY_OPENINGS,
+    OPENINGS,
+    PROVERBS,
+    REACTIONS_NEUTRAL,
+    REACTIONS_UPBEAT,
+    REACTIONS_WORRIED,
+    SLANG_OPENINGS,
+)
 
 _logger = get_logger("nlp.contextualizer")
 
@@ -30,112 +42,19 @@ OVERLAP_REACTION_PROBABILITY = 0.6
 OVERLAP_CLOSING_PROBABILITY = 0.3
 HEADLINE_TRUNCATE_LIMIT = 40
 
-CAST: list[dict[str, str]] = [
-    {"id": "char_bibi_mkwe", "name": "Bibi Mkwe", "voice_id": "mock_bibi", "mood": "uchangamfu"},
-    {"id": "char_mjomba", "name": "Mjomba Juma", "voice_id": "mock_mjomba", "mood": "hasira"},
-    {"id": "char_rafiki", "name": "Rafiki Neema", "voice_id": "mock_neema", "mood": "msisimko"},
-]
-
-_OPENINGS = [
-    "Hujasikia? Mambo yameendelea leo!",
-    "Wewe, leo kuna habari kubwa!",
-    "Ngoja nikuambie kilichotokea...",
-]
-
-_MEMORY_OPENINGS = [
-    "Kumbuka tulichokizungumzia jana... sasa inaendelea!",
-    "Hii ni mwendelezo wa habari tuliyoiona hapo awali.",
-    "Unakumbuka tulivyozungumza? Leo imekuwa kubwa zaidi.",
-]
-
-_REACTIONS_NEUTRAL = [
-    "Haiwezekani! Kweli ndivyo ilivyo?",
-    "Nashangaa sana kusikia hivyo.",
-    "Mh... hii inabadilisha mambo mengi.",
-    "Lakini sasa, hii ni hatari kweli.",
-]
-
-_REACTIONS_WORRIED = [
-    "Hii inatia wasiwasi sana. Tunaweza kufanya nini?",
-    "Sidhani kama tutajisikia vizuri na habari kama hii.",
-    "Mh... wakati mgumu unakuja. Tunahitaji kuwa makini.",
-]
-
-_REACTIONS_UPBEAT = [
-    "Hii ni nzuri sana! Kila mtu akusanye habari hii!",
-    "Nimefurahi sana! Tumekuwa tukingojea hii kwa muda.",
-    "Kesho watu wote watakuwa wakizungumza kuhusu hii!",
-]
-
-_CLOSINGS = [
-    "Basi, tunaendelea kuona mambo yatakavyokuwa.",
-    "Tunafuatilia hadithi hii kwa makini.",
-    "Na ndivyo ilivyokuwa leo, tusubiri kesho.",
-]
-
-# Direction-tuned closings (Feature #35): the community's chosen direction
-# shapes how the scene resolves.
-_CLOSINGS_BY_DIRECTION = {
-    "msisimko": [
-        "Na kitu kinachofuata kinaweza kuwa kubwa! Subiri tu.",
-        "Msisimko umezidi! Tutakuambia kinachotokea baadaye.",
-        "Hii ndiyo mwanzo tu wa mambo makubwa yanayokuja!",
-    ],
-    "furaha": [
-        "Hii inaleta matumaini makubwa kwa siku zijazo!",
-        "Tunaweza kufurahi leo; habari nzuri imefika!",
-        "Ni siku njema! Tumefurahishwa na mwendo huu.",
-    ],
-    "wasiwasi": [
-        "Tunahitaji kuwa makini sana; mambo bado yanaendelea.",
-        "Wasiwasi unaongezeka; tutafuatilia kwa karibu.",
-        "Huu ni wakati wa kujiandaa kwa yale yanayokuja.",
-    ],
-    "utulivu": [
-        "Basi, tulia na tusubiri maelezo zaidi.",
-        "Tunachukua muda kuangalia mambo kwa utulivu.",
-        "Hakuna haraka; tukusanye ukweli kwanza.",
-    ],
-}
-
 
 def _truncate(headline: str, limit: int = HEADLINE_TRUNCATE_LIMIT) -> str:
     """Chop a headline down for use inside dialogue."""
     return headline if len(headline) <= limit else headline[: limit - 1] + "…"
 
 
-# Feature #1: narrative prompts — methali (proverbs) woven into dialogue.
-_PROVERBS = [
-    "Haraka haraka haina baraka.",
-    "Mvumilivu hula mbivu.",
-    "Kidole kimoja hakivunji chawa.",
-    "Mwacha mila ni mtumwa.",
-    "Polepole ndiyo mwendo.",
-    "Asiyekujua hakuthamini.",
-    "Mtaka yote hukosa yote.",
-    "Haba na haba hujaza kibaba.",
-]
-
-# Feature #26: slang dictionary — lightweight urban Swahili layer.
-_SLANG = {
-    "opening": ["Mambo!", "Vipi, kijana?", "Mkuu, unasikia?", "Jambo! Usikilize hii."],
-    "filler": ["mpaka nini?", "basi na basi.", "sasa hivi tu.", "niliyaona mato!"],
-}
-
-_SLANG_OPENINGS = [
-    "Mkuu, kuna jambo la moto!",
-    "Mambo! Habari kubwa imefika leo!",
-    "Ngoja nikwambie, hii ni kubwa sana!",
-]
-
-
 def _reaction_pool(mood: float) -> list[str]:
     """Pick a reaction set tuned to a character's current mood."""
     if mood <= -0.15:
-        return _REACTIONS_WORRIED
+        return REACTIONS_WORRIED
     if mood >= 0.15:
-        return _REACTIONS_UPBEAT
-    return _REACTIONS_NEUTRAL
+        return REACTIONS_UPBEAT
+    return REACTIONS_NEUTRAL
 
 
 def _carryover_emotion(mood: float, rng: random.Random) -> str:
@@ -168,22 +87,22 @@ def build_mock_script(
 
     # Feature #26: weave slang into the opening.
     if rng.random() < SLANG_PROBABILITY:
-        opening = rng.choice(_SLANG_OPENINGS)
+        opening = rng.choice(SLANG_OPENINGS)
         opening_line = f"{opening} {headline}."
     elif state_a.get("memory"):
-        opening = rng.choice(_MEMORY_OPENINGS)
+        opening = rng.choice(MEMORY_OPENINGS)
         opening_line = f"{opening} {headline}."
     else:
-        opening = rng.choice(_OPENINGS)
+        opening = rng.choice(OPENINGS)
         opening_line = f"{opening} {headline}."
 
     reaction = rng.choice(_reaction_pool(state_b.get("mood", 0.0)))
-    direction_pool = _CLOSINGS_BY_DIRECTION.get(direction, _CLOSINGS)
+    direction_pool = CLOSINGS_BY_DIRECTION.get(direction, CLOSINGS)
     closing = rng.choice(direction_pool)
 
     # Feature #1: sometimes resolve with a methali (proverb) for flavor.
     if rng.random() < PROVERB_PROBABILITY:
-        closing = f"{closing} {rng.choice(_PROVERBS)}"
+        closing = f"{closing} {rng.choice(PROVERBS)}"
 
     # Feature #5: the closing line carries the speaker's current emotion.
     closing_emotion = _carryover_emotion(state_a.get("mood", 0.0), rng)

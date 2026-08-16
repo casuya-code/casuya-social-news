@@ -74,7 +74,7 @@ def test_slang_opening_possible():
         news = {**SAMPLE_NEWS, "url": seed_url}
         script = ctx.build_mock_script(news)
         saw_slang = any(
-            line["index"] == 0 and any(line["text"].startswith(s) for s in ctx._SLANG_OPENINGS)
+            line["index"] == 0 and any(line["text"].startswith(s) for s in ctx.SLANG_OPENINGS)
             for line in script["lines"]
         )
         if saw_slang:
@@ -91,7 +91,7 @@ def test_methali_possible_in_closing():
         news = {**SAMPLE_NEWS, "url": seed_url}
         script = ctx.build_mock_script(news)
         closing = script["lines"][2]["text"]
-        if any(p in closing for p in ctx._PROVERBS):
+        if any(p in closing for p in ctx.PROVERBS):
             saw_proverb = True
             break
     assert saw_proverb, "no methali closing found across 60 seeds"

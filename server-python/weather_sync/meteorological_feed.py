@@ -117,9 +117,16 @@ class OpenWeatherFeed:
         }.get(openweather_main, "hewa_safi")
 
 
+_weather_feed: MockWeatherFeed | OpenWeatherFeed | None = None
+
+
 def get_weather_feed() -> MockWeatherFeed | OpenWeatherFeed:
-    """Provider factory — real feed when a key is configured, else mock."""
-    api_key = get_settings().openweather_api_key
-    if api_key:
-        return OpenWeatherFeed(api_key)
-    return MockWeatherFeed()
+    """Provider factory — cached singleton; real feed when a key is configured."""
+    global _weather_feed
+    if _weather_feed is None:
+        api_key = get_settings().openweather_api_key
+        if api_key:
+            _weather_feed = OpenWeatherFeed(api_key)
+        else:
+            _weather_feed = MockWeatherFeed()
+    return _weather_feed

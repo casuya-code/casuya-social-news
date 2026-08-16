@@ -5,7 +5,7 @@ import pytest
 from cache.redis_client import MemoryCache
 from economy import vote_service
 from nlp import character_state
-from nlp.contextualizer import _CLOSINGS_BY_DIRECTION
+from nlp.templates import CLOSINGS_BY_DIRECTION
 from scraper import seen_store
 from scraper.ingestor import ingest, ingest_and_generate, normalize_article
 from scraper.mock_feed import MockFeed
@@ -94,7 +94,7 @@ async def test_ingest_steered_by_community_pulse(isolated_state, isolated_votes)
     feed = MockFeed()
     scripts = await ingest_and_generate(fetcher=feed, limit=10)
     assert len(scripts) == 4
-    msisimko_closings = _CLOSINGS_BY_DIRECTION["msisimko"]
+    msisimko_closings = CLOSINGS_BY_DIRECTION["msisimko"]
     for script in scripts:
         closing = script["lines"][2]["text"]
         assert any(closing.startswith(c) for c in msisimko_closings), closing

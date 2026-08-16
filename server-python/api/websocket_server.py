@@ -1,6 +1,6 @@
 """WebSocket server — live updates to connected clients (Feature #27).
 
-Clients connect to `/api/v1/ws?api_key=...`. On connect they receive a
+Clients connect to `/api/v1/ws?api_key=<key>`. On success they receive a
 `state_snapshot` of the current cast. When new stories generate, only the
 delta (changed characters) is broadcast, keeping payloads tiny on mobile.
 """
@@ -34,7 +34,8 @@ class ConnectionManager:
         return len(self._active)
 
     async def connect(self, ws: WebSocket) -> None:
-        await ws.accept()
+        if ws.client_state.name == "CONNECTING":
+            await ws.accept()
         self._active.add(ws)
         WS_CONNECTIONS.set(self.count)
         _logger.info("ws_connected", clients=self.count)
@@ -63,19 +64,17 @@ manager = ConnectionManager()
 
 @router.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket, api_key: str = "") -> None:
-    """Live update channel. Auth via `?api_key=` query parameter."""
+    """Live update channel. Auth via query param ``api_key``."""
     if api_key != _settings.api_key:
-        _logger.warning("ws_auth_failed")
+        _logger.warning("ws_auth_failed", reason="invalid_key")
         await ws.close(code=4401)
         return
 
     await manager.connect(ws)
-    # Fresh clients start with the full current cast state (memory + mood).
     await manager.send(ws, {"type": "state_snapshot", "characters": load_states()})
 
     try:
         while True:
-            # We ignore client→server traffic; the channel is server-push.
             await ws.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(ws)

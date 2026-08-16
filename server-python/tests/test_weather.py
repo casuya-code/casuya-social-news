@@ -68,16 +68,20 @@ def test_openweather_condition_mapping():
 
 
 def test_feed_factory_prefers_real_when_key_set(monkeypatch):
+    import weather_sync.meteorological_feed as mod
+
     monkeypatch.setattr(
         "weather_sync.meteorological_feed.get_settings",
         lambda: type("S", (), {"openweather_api_key": "abc"})(),
     )
+    mod._weather_feed = None  # reset cache
     assert isinstance(get_weather_feed(), OpenWeatherFeed)
 
     monkeypatch.setattr(
         "weather_sync.meteorological_feed.get_settings",
         lambda: type("S", (), {"openweather_api_key": ""})(),
     )
+    mod._weather_feed = None  # reset cache
     assert isinstance(get_weather_feed(), MockWeatherFeed)
 
 

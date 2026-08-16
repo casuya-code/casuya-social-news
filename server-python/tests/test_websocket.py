@@ -44,7 +44,6 @@ async def test_manager_broadcast_fans_out():
 
 @pytest.mark.asyncio
 async def test_broadcast_script_noop_without_clients():
-    # No connections → broadcast must not raise and must not touch manager.
     before = manager.count
     await manager.broadcast({"type": "script_delta"})
     assert manager.count == before
@@ -60,7 +59,7 @@ def test_ws_auth_success_sends_snapshot():
 def test_ws_auth_failure_closes():
     with pytest.raises(WebSocketDisconnect) as exc_info:
         with client.websocket_connect("/api/v1/ws?api_key=wrong-key"):
-            pass  # connection should be refused immediately
+            pass
     assert exc_info.value.code == 4401
 
 
@@ -78,7 +77,7 @@ def test_build_character_delta_only_changed():
     prev = {"char_a": {"mood": 0.0, "memory": ""}, "char_b": {"mood": 0.0, "memory": ""}}
     deltas = build_character_delta(characters, prev)
     ids = [d["id"] for d in deltas]
-    assert ids == ["char_a"]  # only char_a changed
+    assert ids == ["char_a"]
 
 
 def test_build_character_delta_no_changes():
@@ -102,4 +101,5 @@ def test_build_script_delta_shape():
     assert delta["script_id"] == script["script_id"]
     assert "headline" in delta
     assert "characters_delta" in delta
-    assert script["metadata"]["characters_delta"] == len(delta["characters_delta"])
+    assert "characters_delta_count" in delta
+    assert delta["characters_delta_count"] == len(delta["characters_delta"])
