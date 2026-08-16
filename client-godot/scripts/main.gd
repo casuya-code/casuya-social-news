@@ -259,6 +259,8 @@ func _on_influence_loaded(payload: Dictionary) -> void:
 
 func _on_weather_loaded(payload: Dictionary) -> void:
 	weather_label.show_weather(payload)
+	_weather_mood = float(payload.get("mood_offset", 0.0))
+	_occlusion.set_weather_bias(_weather_mood)
 
 
 func _on_start_pressed() -> void:

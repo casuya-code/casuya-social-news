@@ -12,8 +12,13 @@ signal occlusion_changed(character_id: String, factor: float)
 const MAX_ATTEN_DB := -14.0
 const MAX_PITCH_DROP := 0.15
 const MAX_ECHO := 0.7
+## Feature #30: weather mood bias (from GET /weather mood_offset, in [-1, 1])
+## shifts the room's base acoustics — stormy skies darken, bright skies lift.
+const MAX_WEATHER_DB := 3.0
+const MAX_WEATHER_PITCH := 0.05
 
 var _factors: Dictionary = {}  # character_id -> factor
+var _weather_bias := 0.0
 
 
 ## Map an emotion tag to an occlusion factor (0 = clear/bright, 1 = muffled).
@@ -46,12 +51,22 @@ func echo_amount(factor: float) -> float:
 	return MAX_ECHO * clampf(factor, 0.0, 1.0)
 
 
+## Set the weather mood bias ([-1, 1]) from the /weather mood_offset. A
+## negative bias (dhoruba) darkens the room, a positive one brightens it.
+func set_weather_bias(bias: float) -> void:
+	_weather_bias = clampf(bias, -1.0, 1.0)
+
+
+func weather_bias() -> float:
+	return _weather_bias
+
+
 ## Apply occlusion acoustics to a 3D audio player for a character. Returns the
 ## applied factor.
 func apply_to(player: AudioStreamPlayer3D, character_id: String, emotion: String) -> float:
 	var factor := factor_for_emotion(emotion)
-	player.volume_db = attenuation_db(factor)
-	player.pitch_scale = pitch_scale(factor)
+	player.volume_db = attenuation_db(factor) + _weather_bias * MAX_WEATHER_DB
+	player.pitch_scale = pitch_scale(factor) + _weather_bias * MAX_WEATHER_PITCH
 	_factors[character_id] = factor
 	occlusion_changed.emit(character_id, factor)
 	return factor

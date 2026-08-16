@@ -6,9 +6,12 @@ extends SceneTree
 
 const NETWORK_SCRIPT := preload("res://autoload/NetworkManager.gd")
 const WIDGET_SCRIPT := preload("res://ui/WeatherWidget.gd")
+const OCCLUSION_SCRIPT := preload("res://audio/AcousticOcclusion.gd")
 
 var _network: Node
 var _widget: Label
+var _occlusion: Node
+var _player: AudioStreamPlayer3D
 var _passed := false
 var _payload: Dictionary = {}
 
@@ -19,6 +22,33 @@ func _init() -> void:
 
 func _run() -> void:
 	await process_frame
+
+	# --- AcousticOcclusion weather bias (Feature #30 audio reaction) ---
+	_occlusion = OCCLUSION_SCRIPT.new()
+	root.add_child(_occlusion)
+	_player = AudioStreamPlayer3D.new()
+	root.add_child(_player)
+	_occlusion.apply_to(_player, "char_mjomba", "anapiga_kelele")
+	var base_db: float = _player.volume_db
+	_occlusion.set_weather_bias(-1.0)
+	_occlusion.apply_to(_player, "char_mjomba", "anapiga_kelele")
+	if not (_player.volume_db < base_db):
+		_fail("stormy weather should darken audio: base=%f stormy=%f" % [base_db, _player.volume_db])
+		return
+	var stormy_db: float = _player.volume_db
+	_occlusion.set_weather_bias(1.0)
+	_occlusion.apply_to(_player, "char_mjomba", "anapiga_kelele")
+	if not (_player.volume_db > stormy_db):
+		_fail("bright weather should lift audio: stormy=%f bright=%f" % [stormy_db, _player.volume_db])
+		return
+	# Clamped to [-1, 1].
+	_occlusion.set_weather_bias(5.0)
+	if _occlusion.weather_bias() != 1.0:
+		_fail("weather bias should clamp at 1.0")
+		return
+	print("[TEST] occlusion weather bias: base=%f stormy=%f bright=%f" % [base_db, stormy_db, _player.volume_db])
+	_occlusion.queue_free()
+	_player.queue_free()
 
 	# --- WeatherWidget pure mapping (no server needed) ---
 	_widget = WIDGET_SCRIPT.new()
@@ -77,7 +107,7 @@ func _on_weather_loaded(payload: Dictionary) -> void:
 	if not payload.has("mood_offset"):
 		_fail("weather payload missing mood_offset")
 		return
-	print("[TEST] PASS — widget mapping + live weather=%s period=%s mood=%s" % [
+	print("[TEST] PASS — widget mapping + occlusion bias + live weather=%s period=%s mood=%s" % [
 		payload.get("condition", ""),
 		payload.get("time_of_day", ""),
 		payload.get("mood_offset", ""),
