@@ -87,7 +87,7 @@ class MockFeed:
         for i, article in enumerate(self._articles[:limit]):
             item = dict(article)
             item["publishedAt"] = (now - timedelta(minutes=30 * i)).isoformat()
-            if self._rotate and self._round > 1:
+            if self._rotate:
                 # Distinct path per round → new fingerprint → not deduped.
                 item["url"] = f"{article['url']}/{self._round}"
             out.append(item)

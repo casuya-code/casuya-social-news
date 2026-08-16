@@ -256,8 +256,11 @@ def test_ingest_degrades_to_mock_on_news_error(monkeypatch):
         async def fetch_latest(self, limit):
             return await mock_fetch(limit)
 
+        def __init__(self, rotate: bool = False) -> None:
+            pass
+
     monkeypatch.setattr(ingestor, "NewsApiClient", lambda: FakeReal())
-    monkeypatch.setattr(ingestor, "MockFeed", lambda: FakeMock())
+    monkeypatch.setattr(ingestor, "MockFeed", lambda **kwargs: FakeMock())
 
     async def run():
         fresh = await ingestor.ingest(limit=3)

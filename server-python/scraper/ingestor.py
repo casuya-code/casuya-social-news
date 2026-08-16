@@ -13,6 +13,7 @@ from api.errors import NewsRateLimitedError, NewsSourceError
 from api.websocket_server import broadcast_script
 from cache.redis_client import cache
 from config.logging_config import get_logger
+from config.settings import get_settings
 from database.engine import SessionLocal
 from database.models import MemoryEvent, NewsArticle
 from economy.vote_service import community_pulse
@@ -28,6 +29,7 @@ from storage.script_store import save_script
 from weather_sync.meteorological_feed import get_weather_feed, mood_offset
 
 _logger = get_logger("scraper.ingestor")
+_settings = get_settings()
 
 _SEEN_KEY = "news:seen_urls"
 
@@ -93,7 +95,7 @@ async def ingest(fetcher=None, limit: int = 10) -> list[dict]:
         articles = await fetcher.fetch_latest(limit)
     except (NewsSourceError, NewsRateLimitedError) as exc:
         _logger.warning("news_fetch_degraded", error_code=exc.error_code, error=str(exc))
-        articles = await MockFeed().fetch_latest(limit)
+        articles = await MockFeed(rotate=_settings.mock_feed_rotate).fetch_latest(limit)
 
     normalized = [n for n in (normalize_article(a) for a in articles) if n]
     seen = await _load_seen_fingerprints()

@@ -30,7 +30,7 @@ class NewsApiClient:
 
     def __init__(self) -> None:
         self._api_key = _settings.news_api_key
-        self._fallback = MockFeed()
+        self._fallback = MockFeed(rotate=_settings.mock_feed_rotate)
 
     async def fetch_latest(self, limit: int = 10) -> list[dict]:
         if not self._api_key:

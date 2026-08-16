@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     # External news / weather
     news_api_key: str = ""
     openweather_api_key: str = ""
+    # Rotate mock-feed URLs each round so the endless loop / tests always get
+    # fresh stories (off by default: stable dev dedupe behaviour).
+    mock_feed_rotate: bool = False
 
     # Storage
     storage_backend: str = "local"  # local | s3

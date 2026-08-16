@@ -62,6 +62,19 @@ async def test_ingest_dedupes_between_runs(isolated_state):
 
 
 @pytest.mark.asyncio
+async def test_mock_feed_rotate_keeps_producing_fresh_stories(isolated_state):
+    """Rotation yields new URLs each round, so dedupe never empties the feed."""
+    feed = MockFeed(rotate=True)
+    first = await ingest(fetcher=feed, limit=10)
+    assert len(first) > 0
+    second = await ingest(fetcher=feed, limit=10)
+    assert len(second) > 0
+    urls_first = {a["url"] for a in first}
+    urls_second = {a["url"] for a in second}
+    assert urls_first.isdisjoint(urls_second)
+
+
+@pytest.mark.asyncio
 async def test_ingest_and_generate_builds_character_memory(isolated_state):
     feed = MockFeed()
     scripts = await ingest_and_generate(fetcher=feed, limit=10)
