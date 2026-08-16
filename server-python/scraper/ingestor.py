@@ -7,7 +7,7 @@ contextualizer to produce a dramatic script for each new story.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from api.errors import NewsRateLimitedError, NewsSourceError
 from api.websocket_server import broadcast_script
@@ -67,8 +67,11 @@ async def _load_seen_fingerprints() -> set[str]:
 
     try:
         async with SessionLocal() as session:
+            cutoff = datetime.now(UTC) - timedelta(hours=48)
             rows = await session.execute(
-                NewsArticle.__table__.select().with_only_columns(NewsArticle.url)
+                NewsArticle.__table__.select()
+                .with_only_columns(NewsArticle.url)
+                .where(NewsArticle.fetched_at > cutoff)
             )
             for row in rows:
                 seen.add(url_fingerprint(row[0]))

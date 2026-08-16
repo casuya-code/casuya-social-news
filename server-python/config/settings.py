@@ -74,6 +74,7 @@ class Settings(BaseSettings):
     # Rate limiting
     rate_limit_api: str = "60/minute"
     rate_limit_voice: str = "5/minute"
+    trusted_proxies: str = ""  # comma-separated proxy IPs to trust for X-Forwarded-For
 
     # Background scheduler (endless-stories loop)
     scheduler_enabled: bool = True
@@ -85,6 +86,9 @@ class Settings(BaseSettings):
     retention_enabled: bool = True
     retention_cycle_frequency: int = 12  # ~1h at the default 300s interval
 
+    # CORS (comma-separated origins, empty = no browser access)
+    allowed_origins: str = ""
+
     # Logging
     log_level: str = "INFO"
     log_format: str = "json"
@@ -95,6 +99,27 @@ class Settings(BaseSettings):
         path = Path(self.storage_local_path)
         path.mkdir(parents=True, exist_ok=True)
         return path
+
+    def validate_production_secrets(self) -> None:
+        """Raise if sensitive defaults are unchanged in production."""
+        if self.app_env != "production":
+            return
+        _insecure = {
+            "jwt_secret_key": self.jwt_secret_key,
+            "api_key": self.api_key,
+            "admin_password": self.admin_password,
+        }
+        defaults = {
+            "jwt_secret_key": "change-me",
+            "api_key": "dev-api-key",
+            "admin_password": "admin",
+        }
+        insecure = [k for k, v in _insecure.items() if v == defaults.get(k)]
+        if insecure:
+            raise ValueError(
+                f"Insecure defaults in production: {', '.join(insecure)}. "
+                "Set these in .env before deploying."
+            )
 
 
 @lru_cache

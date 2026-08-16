@@ -17,8 +17,10 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from config.logging_config import get_logger
+from config.settings import get_settings
 
 _logger = get_logger("middleware.rate_limiter")
+_settings = get_settings()
 
 GENERAL_LIMIT = 60  # requests per minute per IP
 VOICE_LIMIT = 5  # voice-generation requests per minute per IP
@@ -56,12 +58,25 @@ class _SlidingWindow:
 _rate_window = _SlidingWindow()
 
 
+_trusted_proxies: set[str] = set()
+
+
+def _get_trusted_proxies() -> set[str]:
+    global _trusted_proxies
+    if not _trusted_proxies and _settings.trusted_proxies:
+        _trusted_proxies = {p.strip() for p in _settings.trusted_proxies.split(",") if p.strip()}
+    return _trusted_proxies
+
+
 def client_key(request: Request) -> str:
     """Identify a client by real IP, falling back to the forwarded header."""
-    forwarded = request.headers.get("x-forwarded-for", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
+    client_host = request.client.host if request.client else "unknown"
+    trusted = _get_trusted_proxies()
+    if trusted and client_host in trusted:
+        forwarded = request.headers.get("x-forwarded-for", "")
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+    return client_host
 
 
 class RateLimiterMiddleware(BaseHTTPMiddleware):
@@ -82,13 +97,16 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
 
         if self._window.count(bucket, key) >= limit:
             _logger.warning("rate_limited", bucket=bucket, client=key)
+            req_id = getattr(request.state, "request_id", "")
             return JSONResponse(
                 status_code=429,
                 content={
-                    "error_code": "E4003",
+                    "success": False,
+                    "status_code": 429,
                     "message": "Rate limit exceeded",
-                    "bucket": bucket,
-                    "limit": limit,
+                    "error_code": "E4003",
+                    "request_id": req_id,
+                    "data": {"bucket": bucket, "limit": limit},
                 },
                 headers={"Retry-After": str(int(_WINDOW))},
             )

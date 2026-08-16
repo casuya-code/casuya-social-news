@@ -18,6 +18,7 @@ from config.logging_config import get_logger
 from config.settings import get_settings
 from database.engine import SessionLocal
 from database.models import NewsArticle, Script
+from economy.vote_service import DIRECTION_PATTERN
 from monitoring.metrics import SCRIPTS_GENERATED, TTS_REQUESTS
 from nlp.contextualizer import contextualize
 from security.api_key_auth import verify_api_key
@@ -52,7 +53,7 @@ class NewsInput(BaseModel):
     source: str = Field(..., min_length=2, max_length=128)
     url: str = Field(..., min_length=5, max_length=1024)
     published_at: datetime | None = None
-    direction: str = Field("utulivu", pattern="^(msisimko|furaha|wasiwasi|utulivu)$")
+    direction: str = Field("utulivu", pattern=DIRECTION_PATTERN)
 
 
 class GenerateResponse(BaseModel):
@@ -99,7 +100,7 @@ class GenerateAudioRequest(BaseModel):
 
     script_id: str | None = None
     script: dict | None = None
-    quality: str = "high"
+    quality: str = Field(default="high", pattern="^(high|low)$")
 
 
 @router.post("/generate", response_model=GenerateResponse)

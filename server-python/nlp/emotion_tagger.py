@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import random
+from functools import lru_cache
 from pathlib import Path
 
 from api.errors import EmotionTaggingError
@@ -30,6 +31,7 @@ _INDEX_BASED = {
 }
 
 
+@lru_cache(maxsize=1)
 def _load_registry_tags() -> set[str]:
     """Load the shared emotion-tag registry (contract source of truth)."""
     path = (

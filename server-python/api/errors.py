@@ -76,6 +76,11 @@ class TokenExpiredError(APIError):
     error_code = "E4002"
 
 
+class RateLimitError(APIError):
+    status_code = 429
+    error_code = "E4003"
+
+
 class MigrationRequiredError(APIError):
     status_code = 409
     error_code = "E3003"

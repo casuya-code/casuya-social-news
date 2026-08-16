@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import text
 
 from cache.redis_client import cache
@@ -11,7 +11,6 @@ from config.settings import get_settings
 from database.engine import SessionLocal
 from security.api_key_auth import verify_api_key
 from voice.breaker_tts_provider import get_breaker_circuit
-from voice.tts_provider import get_provider
 
 _logger = get_logger("api.health")
 _settings = get_settings()
@@ -20,13 +19,15 @@ router = APIRouter()
 
 
 @router.get("/health")
-async def health_check(_: str = Depends(verify_api_key)) -> dict:
+async def health_check(
+    request: Request, _: str = Depends(verify_api_key)
+) -> dict:
     """Liveness + readiness probe: DB, cache, and TTS provider.
 
     Reports every dependency individually; overall status is "ok" only when
     all are healthy. Never raises — health endpoints must be informative.
     """
-    status = {"status": "ok", "dependencies": {}}
+    status: dict = {"status": "ok", "dependencies": {}}
 
     # Database
     try:
@@ -47,6 +48,8 @@ async def health_check(_: str = Depends(verify_api_key)) -> dict:
 
     # TTS provider
     try:
+        from voice.tts_provider import get_provider
+
         provider = get_provider()
         healthy = await provider.health_check()
         status["dependencies"]["tts"] = provider.name if healthy else "down"
@@ -59,9 +62,8 @@ async def health_check(_: str = Depends(verify_api_key)) -> dict:
 
     status["circuit"] = get_breaker_circuit().snapshot()
 
-    from main import scheduler
-
-    status["scheduler"] = scheduler.snapshot()
+    scheduler = getattr(request.app.state, "scheduler", None)
+    status["scheduler"] = scheduler.snapshot() if scheduler else {"status": "unavailable"}
     status["app_env"] = _settings.app_env
 
     # LLM status

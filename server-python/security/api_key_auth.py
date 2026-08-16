@@ -7,6 +7,8 @@ Godot client while letting authenticated operators use the same endpoints.
 
 from __future__ import annotations
 
+import hmac
+
 from fastapi import Request
 from fastapi.security import APIKeyHeader
 from fastapi.security.utils import get_authorization_scheme_param
@@ -23,7 +25,7 @@ API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
 def verify_api_key(request: Request) -> str:
     """FastAPI dependency validating the API key. Returns the key on success."""
     api_key = request.headers.get("X-API-Key")
-    if api_key and api_key == _settings.api_key:
+    if api_key and hmac.compare_digest(api_key, _settings.api_key):
         return api_key
 
     # Alternative: an operator JWT access token.

@@ -119,6 +119,9 @@ def generate_with_llm(
                 {"role": "user", "content": _build_user_prompt(news, cast, direction)},
             ],
         )
+        if not response.choices:
+            _logger.warning("llm_empty_choices")
+            return None
         raw = response.choices[0].message.content or ""
         script = json.loads(raw)
         _logger.info("llm_script_generated", model=_settings.openai_model)

@@ -23,6 +23,8 @@ _logger = get_logger("storage.audio")
 
 _settings = get_settings()
 
+_s3_client = None
+
 
 def public_audio_url(script_id: str, filename: str) -> str:
     """Client-facing URL for an audio object."""
@@ -43,21 +45,28 @@ def publish_audio(local_path: Path, script_id: str) -> str:
     return public_audio_url(script_id, filename)
 
 
+def _get_s3_client():
+    """Return a cached boto3 S3 client (avoids re-creating per upload)."""
+    global _s3_client
+    if _s3_client is None:
+        import boto3  # noqa: PLC0415 - lazy import, S3-only dependency
+
+        _s3_client = boto3.client(
+            "s3",
+            region_name=_settings.aws_s3_region,
+            aws_access_key_id=_settings.aws_access_key_id or None,
+            aws_secret_access_key=_settings.aws_secret_access_key or None,
+        )
+    return _s3_client
+
+
 def _upload_to_s3(local_path: Path, key: str) -> None:
     """Upload one file to the configured S3 bucket.
 
     boto3 is imported lazily so the S3 SDK is only required when the
     backend is s3. Raises on any boto3 / network error.
     """
-    import boto3  # noqa: PLC0415 - lazy import, S3-only dependency
-
     if not _settings.aws_s3_bucket:
         raise RuntimeError("aws_s3_bucket not configured")
 
-    s3 = boto3.client(
-        "s3",
-        region_name=_settings.aws_s3_region,
-        aws_access_key_id=_settings.aws_access_key_id or None,
-        aws_secret_access_key=_settings.aws_secret_access_key or None,
-    )
-    s3.upload_file(str(local_path), _settings.aws_s3_bucket, key)
+    _get_s3_client().upload_file(str(local_path), _settings.aws_s3_bucket, key)

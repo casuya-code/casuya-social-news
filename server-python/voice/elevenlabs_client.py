@@ -6,6 +6,7 @@ Budget-capped via `ELEVENLABS_MONTHLY_BUDGET_USD`.
 
 from __future__ import annotations
 
+import datetime
 from pathlib import Path
 
 import httpx
@@ -24,6 +25,7 @@ _PRICE_PER_1M_CHARS_USD = 100.0
 
 # Process-local char budget tracker for the monthly cap (README cost controls).
 _chars_synthesized_this_month = 0
+_budget_month: int = 0
 
 
 class ElevenLabsProvider(TTSProvider):
@@ -44,7 +46,12 @@ class ElevenLabsProvider(TTSProvider):
     async def synthesize(
         self, text: str, voice_id: str, out_path: Path, *, quality: str = "high"
     ) -> Path:
-        global _chars_synthesized_this_month
+        global _chars_synthesized_this_month, _budget_month
+        current_month = datetime.date.today().month
+        if current_month != _budget_month:
+            _chars_synthesized_this_month = 0
+            _budget_month = current_month
+
         if not self._api_key:
             raise RuntimeError("ELEVENLABS_API_KEY not configured")
         if (

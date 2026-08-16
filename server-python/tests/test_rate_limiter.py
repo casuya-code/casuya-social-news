@@ -1,5 +1,7 @@
 """Tests for the rate limiter middleware."""
 
+from unittest.mock import patch
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from starlette.requests import Request
@@ -45,17 +47,45 @@ def test_sliding_window_separates_buckets_and_clients():
 
 
 def test_client_key_prefers_forwarded_header():
-    scope = {
-        "type": "http",
-        "method": "GET",
-        "path": "/",
-        "headers": [(b"x-forwarded-for", b"9.9.9.9, 8.8.8.8")],
-        "client": ("1.2.3.4", 1234),
-        "query_string": b"",
-        "asgi": {"version": "3.0"},
-    }
-    request = Request(scope)
-    assert client_key(request) == "9.9.9.9"
+    """When client IP is a trusted proxy, X-Forwarded-For is used."""
+    with patch("middleware.rate_limiter._settings") as mock_settings:
+        mock_settings.trusted_proxies = "1.2.3.4"
+        # Clear cached proxies
+        import middleware.rate_limiter as rl_mod
+        rl_mod._trusted_proxies = set()
+
+        scope = {
+            "type": "http",
+            "method": "GET",
+            "path": "/",
+            "headers": [(b"x-forwarded-for", b"9.9.9.9, 8.8.8.8")],
+            "client": ("1.2.3.4", 1234),
+            "query_string": b"",
+            "asgi": {"version": "3.0"},
+        }
+        request = Request(scope)
+        assert client_key(request) == "9.9.9.9"
+        rl_mod._trusted_proxies = set()
+
+
+def test_client_key_ignores_forwarded_header_untrusted():
+    """When client IP is NOT a trusted proxy, X-Forwarded-For is ignored."""
+    with patch("middleware.rate_limiter._settings") as mock_settings:
+        mock_settings.trusted_proxies = ""
+        import middleware.rate_limiter as rl_mod
+        rl_mod._trusted_proxies = set()
+
+        scope = {
+            "type": "http",
+            "method": "GET",
+            "path": "/",
+            "headers": [(b"x-forwarded-for", b"9.9.9.9, 8.8.8.8")],
+            "client": ("1.2.3.4", 1234),
+            "query_string": b"",
+            "asgi": {"version": "3.0"},
+        }
+        request = Request(scope)
+        assert client_key(request) == "1.2.3.4"
 
 
 def _build_app(window, *, voice: bool = False):

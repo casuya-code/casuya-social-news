@@ -15,6 +15,7 @@ from config.logging_config import get_logger
 from database.engine import SessionLocal
 from database.models import Vote
 from economy import vote_service
+from economy.vote_service import DIRECTION_PATTERN
 from security.api_key_auth import verify_api_key
 
 _logger = get_logger("api.economy")
@@ -27,7 +28,7 @@ class VoteInput(BaseModel):
 
     script_id: str = Field(..., min_length=8, max_length=64)
     client_id: str = Field(..., min_length=1, max_length=64)
-    direction: str = Field(..., pattern="^(msisimko|furaha|wasiwasi|utulivu)$")
+    direction: str = Field(..., pattern=DIRECTION_PATTERN)
 
 
 class VoteResponse(BaseModel):

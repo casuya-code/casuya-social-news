@@ -11,6 +11,7 @@ from economy.vote_store import load_votes, save_votes
 from monitoring.metrics import VOTES_RECORDED
 
 ALLOWED_DIRECTIONS = ("msisimko", "furaha", "wasiwasi", "utulivu")
+DIRECTION_PATTERN = f"^({'|'.join(ALLOWED_DIRECTIONS)})$"
 
 DEFAULT_DIRECTION = "utulivu"
 
@@ -56,7 +57,8 @@ def total_votes(script_id: str) -> int:
 def resolve_direction(script_id: str) -> str:
     """Winning direction, or the neutral default when there are no votes."""
     counts = tally(script_id)
-    if total_votes(script_id) == 0:
+    total = sum(counts.values())
+    if total == 0:
         return DEFAULT_DIRECTION
     return max(counts, key=counts.get)
 

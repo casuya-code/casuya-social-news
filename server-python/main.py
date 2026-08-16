@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Response
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -16,6 +17,7 @@ from config.logging_config import setup_logging
 from config.settings import get_settings
 from database.engine import check_schema_version
 from database.seed import seed_admin_user, seed_characters
+from middleware.body_limit import BodySizeLimitMiddleware
 from middleware.rate_limiter import RateLimiterMiddleware
 from middleware.request_id import RequestIDMiddleware
 from middleware.response_envelope import ResponseEnvelopeMiddleware
@@ -37,9 +39,11 @@ async def lifespan(app: FastAPI):
     """Startup/shutdown lifecycle."""
     # Ensure storage directory exists for audio assets.
     _settings.storage_dir.mkdir(parents=True, exist_ok=True)
+    _settings.validate_production_secrets()
     await check_schema_version()
     await seed_characters()
     await seed_admin_user()
+    app.state.scheduler = scheduler
     if _settings.scheduler_enabled and _settings.scheduler_backend == "inprocess":
         await scheduler.start()
     elif _settings.scheduler_backend == "celery":
@@ -61,7 +65,17 @@ app = FastAPI(
 )
 
 register_exception_handlers(app)
+
+if _settings.allowed_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[o.strip() for o in _settings.allowed_origins.split(",") if o.strip()],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
 app.add_middleware(ResponseEnvelopeMiddleware)
+app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(RateLimiterMiddleware)
 app.add_middleware(MetricsMiddleware)  # outermost → sees every request/response

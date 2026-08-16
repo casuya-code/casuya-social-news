@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel
 
 from config.logging_config import get_logger
 from database.engine import SessionLocal
@@ -15,10 +16,27 @@ _logger = get_logger("api.news")
 router = APIRouter(dependencies=[Depends(verify_api_key)])
 
 
-@router.get("/latest")
-async def latest_news(limit: int = 20) -> dict:
+class ArticleSummary(BaseModel):
+    id: int
+    headline: str
+    source: str
+    url: str
+    published_at: str | None = None
+
+
+class LatestNewsResponse(BaseModel):
+    articles: list[ArticleSummary]
+    count: int
+
+
+class RefreshNewsResponse(BaseModel):
+    ingested: int
+    scripts: list[dict]
+
+
+@router.get("/latest", response_model=LatestNewsResponse)
+async def latest_news(limit: int = Query(default=20, ge=1, le=50)) -> LatestNewsResponse:
     """Return the most recent ingested articles."""
-    limit = max(1, min(limit, 50))
     articles: list[dict] = []
     try:
         async with SessionLocal() as session:
@@ -41,12 +59,11 @@ async def latest_news(limit: int = 20) -> dict:
         _logger.warning("latest_news_db_down", error=str(exc))
         articles = []
 
-    return {"articles": articles, "count": len(articles)}
+    return LatestNewsResponse(articles=[ArticleSummary(**a) for a in articles], count=len(articles))
 
 
-@router.post("/refresh")
-async def refresh_news(limit: int = 10) -> dict:
+@router.post("/refresh", response_model=RefreshNewsResponse)
+async def refresh_news(limit: int = Query(default=10, ge=1, le=20)) -> RefreshNewsResponse:
     """Pull new articles now and generate a script for each fresh story."""
-    limit = max(1, min(limit, 20))
     scripts = await ingest_and_generate(limit=limit)
-    return {"ingested": len(scripts), "scripts": scripts}
+    return RefreshNewsResponse(ingested=len(scripts), scripts=scripts)

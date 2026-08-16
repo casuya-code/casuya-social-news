@@ -21,6 +21,15 @@ from nlp.product_placement import select_placement
 
 _logger = get_logger("nlp.contextualizer")
 
+# Tuning constants for mock script generation
+SPEAKERS_PER_SCENE = 2
+SLANG_PROBABILITY = 0.4
+PROVERB_PROBABILITY = 0.35
+HEAT_THRESHOLD = 0.4
+OVERLAP_REACTION_PROBABILITY = 0.6
+OVERLAP_CLOSING_PROBABILITY = 0.3
+HEADLINE_TRUNCATE_LIMIT = 40
+
 CAST: list[dict[str, str]] = [
     {"id": "char_bibi_mkwe", "name": "Bibi Mkwe", "voice_id": "mock_bibi", "mood": "uchangamfu"},
     {"id": "char_mjomba", "name": "Mjomba Juma", "voice_id": "mock_mjomba", "mood": "hasira"},
@@ -90,7 +99,7 @@ _CLOSINGS_BY_DIRECTION = {
 }
 
 
-def _truncate(headline: str, limit: int = 40) -> str:
+def _truncate(headline: str, limit: int = HEADLINE_TRUNCATE_LIMIT) -> str:
     """Chop a headline down for use inside dialogue."""
     return headline if len(headline) <= limit else headline[: limit - 1] + "…"
 
@@ -150,7 +159,7 @@ def build_mock_script(
 
     cast = CAST[:]
     rng.shuffle(cast)
-    cast = cast[:2]  # two speakers per scene for the MVP
+    cast = cast[:SPEAKERS_PER_SCENE]  # two speakers per scene for the MVP
 
     speaker_a = cast[0]["id"]
     speaker_b = cast[1]["id"]
@@ -158,7 +167,7 @@ def build_mock_script(
     state_b = cast_state.get(speaker_b, {"memory": "", "mood": 0.0})
 
     # Feature #26: weave slang into the opening.
-    if rng.random() < 0.4:
+    if rng.random() < SLANG_PROBABILITY:
         opening = rng.choice(_SLANG_OPENINGS)
         opening_line = f"{opening} {headline}."
     elif state_a.get("memory"):
@@ -173,7 +182,7 @@ def build_mock_script(
     closing = rng.choice(direction_pool)
 
     # Feature #1: sometimes resolve with a methali (proverb) for flavor.
-    if rng.random() < 0.35:
+    if rng.random() < PROVERB_PROBABILITY:
         closing = f"{closing} {rng.choice(_PROVERBS)}"
 
     # Feature #5: the closing line carries the speaker's current emotion.
@@ -181,8 +190,8 @@ def build_mock_script(
 
     # Feature #6: overlap cues — a heated scene lets lines talk over each other.
     heat = abs(state_a.get("mood", 0.0)) + abs(state_b.get("mood", 0.0))
-    overlap_reaction = heat >= 0.4 and rng.random() < 0.6
-    overlap_closing = heat >= 0.4 and rng.random() < 0.3
+    overlap_reaction = heat >= HEAT_THRESHOLD and rng.random() < OVERLAP_REACTION_PROBABILITY
+    overlap_closing = heat >= HEAT_THRESHOLD and rng.random() < OVERLAP_CLOSING_PROBABILITY
 
     lines = [
         {

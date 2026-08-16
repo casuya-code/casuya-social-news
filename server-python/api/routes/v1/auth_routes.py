@@ -11,10 +11,13 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 
 from api.errors import UnauthorizedError
 from config.logging_config import get_logger
 from config.settings import get_settings
+from database.engine import SessionLocal
+from database.models import User
 from security.jwt import (
     TOKEN_TYPE_REFRESH,
     create_access_token,
@@ -22,7 +25,7 @@ from security.jwt import (
     decode_token,
     verify_access_token,
 )
-from security.password import verify_password
+from security.password import hash_password, verify_password
 
 _logger = get_logger("api.auth")
 _settings = get_settings()
@@ -49,6 +52,12 @@ class TokenResponse(BaseModel):
     expires_in: int
 
 
+class MeResponse(BaseModel):
+    sub: str
+    token_type: str
+    expires_at: int | None = None
+
+
 def _credentials(
     creds: HTTPAuthorizationCredentials | None,
 ) -> str:
@@ -61,11 +70,6 @@ def _credentials(
 async def _authenticate_user(username: str, password: str) -> bool:
     """Check credentials against DB, falling back to settings if DB is down."""
     try:
-        from sqlalchemy import select
-
-        from database.engine import SessionLocal
-        from database.models import User
-
         async with SessionLocal() as session:
             result = await session.execute(
                 select(User).where(User.username == username)
@@ -89,11 +93,6 @@ async def _require_admin(
 
     # Check DB for admin flag (with settings fallback).
     try:
-        from sqlalchemy import select
-
-        from database.engine import SessionLocal
-        from database.models import User
-
         async with SessionLocal() as session:
             result = await session.execute(
                 select(User).where(User.username == subject)
@@ -133,12 +132,6 @@ async def register(
 ) -> TokenResponse:
     """Create a new operator account and return tokens immediately. Admin only."""
     try:
-        from sqlalchemy import select
-
-        from database.engine import SessionLocal
-        from database.models import User
-        from security.password import hash_password
-
         async with SessionLocal() as session:
             result = await session.execute(
                 select(User).where(User.username == payload.username)
@@ -182,13 +175,13 @@ async def refresh(creds: HTTPAuthorizationCredentials | None = Depends(_bearer))
     )
 
 
-@router.get("/me")
-async def me(creds: HTTPAuthorizationCredentials | None = Depends(_bearer)) -> dict:
+@router.get("/me", response_model=MeResponse)
+async def me(creds: HTTPAuthorizationCredentials | None = Depends(_bearer)) -> MeResponse:
     """Return the authenticated operator's token claims."""
     token = _credentials(creds)
     payload = verify_access_token(token)
-    return {
-        "sub": payload["sub"],
-        "token_type": payload.get("type"),
-        "expires_at": payload.get("exp"),
-    }
+    return MeResponse(
+        sub=payload["sub"],
+        token_type=payload.get("type", "access"),
+        expires_at=payload.get("exp"),
+    )
