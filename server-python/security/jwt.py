@@ -67,8 +67,8 @@ def decode_token(token: str, *, expected_type: str = TOKEN_TYPE_ACCESS) -> dict[
         _logger.warning("jwt_wrong_type", expected=expected_type, got=payload.get("type"))
         raise UnauthorizedError("Invalid token type for this endpoint")
 
-    if payload.get("sub") != ACCESS_TOKEN_SUBJECT:
-        raise UnauthorizedError("Unknown token subject")
+    if payload.get("sub") is None:
+        raise UnauthorizedError("Token has no subject")
 
     return payload
 

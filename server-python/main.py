@@ -14,7 +14,7 @@ from api.handlers import register_exception_handlers
 from api.routes.v1.router import api_v1_router
 from config.logging_config import setup_logging
 from config.settings import get_settings
-from database.seed import seed_characters
+from database.seed import seed_admin_user, seed_characters
 from middleware.rate_limiter import RateLimiterMiddleware
 from middleware.request_id import RequestIDMiddleware
 from monitoring.metrics import MetricsMiddleware, render_metrics
@@ -36,8 +36,14 @@ async def lifespan(app: FastAPI):
     # Ensure storage directory exists for audio assets.
     _settings.storage_dir.mkdir(parents=True, exist_ok=True)
     await seed_characters()
+    await seed_admin_user()
     if _settings.scheduler_enabled and _settings.scheduler_backend == "inprocess":
         await scheduler.start()
+    elif _settings.scheduler_backend == "celery":
+        import logging
+        logging.getLogger("casuya.startup").info(
+            "Celery mode: run 'celery -A task_queue.celery_app worker -B' separately"
+        )
     try:
         yield
     finally:

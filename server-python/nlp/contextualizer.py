@@ -14,9 +14,12 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
+from config.logging_config import get_logger
 from nlp.emotion_tagger import tag_line
 from nlp.memory import mood_label
 from nlp.product_placement import select_placement
+
+_logger = get_logger("nlp.contextualizer")
 
 _CAST: list[dict[str, str]] = [
     {"id": "char_bibi_mkwe", "name": "Bibi Mkwe", "voice_id": "mock_bibi", "mood": "uchangamfu"},
@@ -249,5 +252,28 @@ def contextualize(
     cast_state: dict[str, dict] | None = None,
     direction: str = "utulivu",
 ) -> dict[str, Any]:
-    """Entry point: news → script. Swap this for an LLM call later."""
+    """Entry point: news → script. Uses LLM when OPENAI_API_KEY is set."""
+    from nlp.llm_generator import generate_with_llm
+
+    cast_state = cast_state or {}
+    cast = [
+        {
+            "id": c["id"],
+            "name": c["name"],
+            "voice_id": c["voice_id"],
+            "mood": c.get("mood", "utulivu"),
+            "mood_value": cast_state.get(c["id"], {}).get("mood", 0.0),
+            "mood_label": mood_label(cast_state.get(c["id"], {}).get("mood", 0.0)),
+            "memory": cast_state.get(c["id"], {}).get("memory", ""),
+        }
+        for c in _CAST
+    ]
+
+    llm_script = generate_with_llm(news, cast, direction)
+    if llm_script is not None:
+        # Ensure required top-level keys are present (defense against bad LLM output).
+        if all(k in llm_script for k in ("version", "script_id", "lines", "characters")):
+            return llm_script
+        _logger.warning("llm_output_missing_keys", keys=list(llm_script.keys()))
+
     return build_mock_script(news, cast_state, direction)

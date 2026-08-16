@@ -30,6 +30,18 @@ class TimeOfDay(str, Enum):
     usiku = "usiku"
 
 
+class User(Base):
+    """Operator account with hashed password (Feature #29)."""
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column(String(128), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(256))
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class Character(Base):
     """A recurring cast member with memory and mood state."""
 

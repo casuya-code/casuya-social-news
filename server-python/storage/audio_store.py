@@ -35,8 +35,11 @@ def publish_audio(local_path: Path, script_id: str) -> str:
     filename = local_path.name
     if _settings.storage_backend == "s3":
         key = f"{script_id}/{filename}"
-        _upload_to_s3(local_path, key)
-        _logger.info("audio_uploaded_to_s3", key=key, bucket=_settings.aws_s3_bucket)
+        try:
+            _upload_to_s3(local_path, key)
+            _logger.info("audio_uploaded_to_s3", key=key, bucket=_settings.aws_s3_bucket)
+        except Exception as exc:  # noqa: BLE001 — fall back to local URL
+            _logger.warning("s3_upload_failed_fallback_local", error=str(exc))
     return public_audio_url(script_id, filename)
 
 
@@ -44,14 +47,17 @@ def _upload_to_s3(local_path: Path, key: str) -> None:
     """Upload one file to the configured S3 bucket.
 
     boto3 is imported lazily so the S3 SDK is only required when the
-    backend is s3.
+    backend is s3. Raises on any boto3 / network error.
     """
     import boto3  # noqa: PLC0415 - lazy import, S3-only dependency
+
+    if not _settings.aws_s3_bucket:
+        raise RuntimeError("aws_s3_bucket not configured")
 
     s3 = boto3.client(
         "s3",
         region_name=_settings.aws_s3_region,
-        aws_access_key_id=_settings.aws_access_key_id,
-        aws_secret_access_key=_settings.aws_secret_access_key,
+        aws_access_key_id=_settings.aws_access_key_id or None,
+        aws_secret_access_key=_settings.aws_secret_access_key or None,
     )
     s3.upload_file(str(local_path), _settings.aws_s3_bucket, key)

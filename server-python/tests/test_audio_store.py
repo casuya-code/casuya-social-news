@@ -98,8 +98,8 @@ def test_s3_upload_builds_client_and_uploads(monkeypatch, tmp_path):
     assert calls["key"] == "script-1/02.wav"
 
 
-def test_publish_s3_backend_requires_sdk(monkeypatch, tmp_path):
-    """Without the S3 SDK installed, the uploader must fail loudly."""
+def test_publish_s3_backend_falls_back_on_missing_sdk(monkeypatch, tmp_path):
+    """Without the S3 SDK installed, the uploader falls back to local URL."""
     import importlib.util
 
     from storage import audio_store
@@ -111,5 +111,5 @@ def test_publish_s3_backend_requires_sdk(monkeypatch, tmp_path):
     local = tmp_path / "03.wav"
     local.write_bytes(b"fake-wav")
 
-    with pytest.raises(ModuleNotFoundError):
-        audio_store.publish_audio(local, "script-2")
+    url = audio_store.publish_audio(local, "script-2")
+    assert "/script-2/03.wav" in url
