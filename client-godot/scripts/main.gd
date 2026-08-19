@@ -40,6 +40,13 @@ const OfflineDetectorScene := preload("res://ui/OfflineDetector.gd")
 const SpatialScene := preload("res://audio/SpatialAudioManager.gd")
 const OcclusionScene := preload("res://audio/AcousticOcclusion.gd")
 const CacheScene := preload("res://storage/OfflineCache.gd")
+const BeatTrackerScene := preload("res://camera/BeatTracker.gd")
+const ShotComposerScene := preload("res://camera/ShotComposer.gd")
+const ProceduralCameraScene := preload("res://camera/ProceduralCamera.gd")
+const LightBakerScene := preload("res://environment/LightBaker.gd")
+const WeatherShaderScene := preload("res://environment/WeatherShader.gd")
+const CrowdGeneratorScene := preload("res://environment/CrowdGenerator.gd")
+const CharacterControllerScene := preload("res://characters/CharacterController.gd")
 
 var _scripts: Array = []
 var _current_script: Dictionary = {}
@@ -61,6 +68,16 @@ var _cache: Node
 var _settings: AppSettings
 var _settings_open := false
 var _weather_mood := 0.0
+# Camera systems (Features #12, #13)
+var _beat_tracker: Node
+var _shot_composer: Node
+var _procedural_camera: Node
+# Environment systems (Features #29, #30, #31)
+var _light_baker: Node
+var _weather_shader: Node
+var _crowd_generator: Node
+# Active character controllers per character_id
+var _characters: Dictionary = {}  # character_id -> CharacterController
 
 
 func _ready() -> void:
@@ -98,6 +115,29 @@ func _build_feedback_layers() -> void:
 	_cache = CacheScene.new()
 	Network.cache = _cache
 	add_child(_cache)
+
+	# Camera systems (Features #12, #13)
+	_beat_tracker = BeatTrackerScene.new()
+	_beat_tracker.name = "BeatTracker"
+	add_child(_beat_tracker)
+	_shot_composer = ShotComposerScene.new()
+	_shot_composer.name = "ShotComposer"
+	add_child(_shot_composer)
+	_shot_composer.setup(_beat_tracker)
+	_procedural_camera = ProceduralCameraScene.new()
+	_procedural_camera.name = "ProceduralCamera"
+	add_child(_procedural_camera)
+
+	# Environment systems (Features #29, #30, #31)
+	_light_baker = LightBakerScene.new()
+	_light_baker.name = "LightBaker"
+	add_child(_light_baker)
+	_weather_shader = WeatherShaderScene.new()
+	_weather_shader.name = "WeatherShader"
+	add_child(_weather_shader)
+	_crowd_generator = CrowdGeneratorScene.new()
+	_crowd_generator.name = "CrowdGenerator"
+	add_child(_crowd_generator)
 
 	_settings = AppSettings.new()
 	_settings.load_settings()
@@ -219,6 +259,7 @@ func _on_script_loaded(script: Dictionary) -> void:
 	if script.get("script_id", "") != "":
 		_cache.cache_script(script)
 		cast_panel.register_script(script)
+		_register_characters(script)
 		var news_ref: Dictionary = script.get("news_ref", {})
 		if news_ref.get("headline", "") != "":
 			ticker.push(news_ref["headline"])
@@ -266,6 +307,11 @@ func _on_weather_loaded(payload: Dictionary) -> void:
 	weather_label.show_weather(payload)
 	_weather_mood = float(payload.get("mood_offset", 0.0))
 	_occlusion.set_weather_bias(_weather_mood)
+	# Feed weather to environment systems (Features #29, #30).
+	var condition: String = payload.get("condition", "angavu")
+	_light_baker.set_weather(condition)
+	_light_baker.set_mood_offset(_weather_mood)
+	_weather_shader.set_weather(condition)
 
 
 func _on_start_pressed() -> void:
@@ -280,6 +326,7 @@ func _on_news_loaded(scripts: Array) -> void:
 		if script.get("script_id", "") != "":
 			_cache.cache_script(script)
 			cast_panel.register_script(script)
+			_register_characters(script)
 		var news_ref: Dictionary = script.get("news_ref", {})
 		if news_ref.get("headline", "") != "":
 			ticker.push(news_ref["headline"])
@@ -305,9 +352,50 @@ func _start_script(script: Dictionary) -> void:
 	next_button.hide()
 	_loading.set_progress(0, _lines.size())
 	_loading.show_screen()
+	# Load beat tracker for dramatic pacing.
+	_beat_tracker.load_script(script)
+	# Set up environment from script metadata.
+	var metadata: Dictionary = script.get("metadata", {})
+	var tod: String = metadata.get("time_of_day", "mchana")
+	_light_baker.set_time_of_day(tod)
+	var weather_data: Dictionary = metadata.get("weather", {})
+	if not weather_data.is_empty():
+		var condition: String = weather_data.get("condition", "angavu")
+		_light_baker.set_weather(condition)
+		_weather_shader.set_weather(condition)
 	# Show how the community is already leaning on this story (if any votes).
-	Network.fetch_vote_stats(script.get("script_id", ""))
+	var script_id: String = script.get("script_id", "")
+	if Network.is_offline:
+		if _has_cached_audio(script_id, _lines.size()):
+			_load_cached_audio(script_id)
+		else:
+			status_label.text = "Hakuna sauti zilizohifadhiwa kwa hadithi hii nje ya mtandao"
+			_loading.finish()
+			start_button.disabled = false
+		return
+
+	Network.fetch_vote_stats(script_id)
 	Network.generate_audio(script)
+
+
+func _has_cached_audio(script_id: String, count: int) -> bool:
+	if _cache == null or script_id == "" or count == 0:
+		return false
+	for i in range(count):
+		if _cache.load_audio(script_id, i).is_empty():
+			return false
+	return true
+
+
+func _load_cached_audio(script_id: String) -> void:
+	for i in range(_lines.size()):
+		var bytes: PackedByteArray = _cache.load_audio(script_id, i)
+		var stream := AudioStreamWAV.new()
+		var loaded: AudioStreamWAV = stream.load_from_buffer(bytes)
+		if loaded != null and not bytes.is_empty():
+			_on_audio_ready(i, loaded)
+		else:
+			status_label.text = "Hitilafu ya sauti iliyohifadhiwa"
 
 
 func _on_vote_stats_loaded(payload: Dictionary) -> void:
@@ -351,11 +439,26 @@ func _on_line_started(index: int) -> void:
 	_spatial.apply_to(voice, char_id)
 	_occlusion.apply_to(voice, char_id, emotion)
 
+	# Beat tracking — advance the dramatic beat for camera cuts.
+	_beat_tracker.advance_line(index)
+	_shot_composer.set_active_characters(_count_active_characters())
+
+	# Character controller — notify the speaking character.
+	if _characters.has(char_id):
+		var ctrl: Node = _characters[char_id]
+		if ctrl.has_method("on_line_started"):
+			ctrl.on_line_started(emotion)
+
 
 func _on_audio_finished() -> void:
 	_playing = false
 	_busy = false
 	status_label.text = ""
+	# Notify all characters the line ended.
+	for char_id in _characters:
+		var ctrl: Node = _characters[char_id]
+		if ctrl.has_method("on_line_finished"):
+			ctrl.on_line_finished()
 	if _listen_mode and not _queue.is_empty():
 		# Live radio: roll straight into the next queued story.
 		_start_script(_queue.pop_front())
@@ -418,3 +521,24 @@ func _input(event: InputEvent) -> void:
 			drama.skip()
 		elif event.keycode == KEY_N:
 			_on_next_pressed()
+
+
+func _count_active_characters() -> int:
+	var seen: Dictionary = {}
+	for line in _lines:
+		var cid: String = line.get("character_id", "")
+		if cid != "":
+			seen[cid] = true
+	return seen.size()
+
+
+func _register_characters(script: Dictionary) -> void:
+	for char_data: Dictionary in script.get("characters", []):
+		var cid: String = char_data.get("id", "")
+		if cid == "" or _characters.has(cid):
+			continue
+		var ctrl: Node = CharacterControllerScene.new()
+		ctrl.character_id = cid
+		ctrl.age = char_data.get("age", "mtu mzima")
+		add_child(ctrl)
+		_characters[cid] = ctrl

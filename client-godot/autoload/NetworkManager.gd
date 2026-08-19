@@ -85,7 +85,7 @@ func _process(_delta: float) -> void:
 func _handle_ws_message(message: Dictionary) -> void:
 	match message.get("type", ""):
 		"state_snapshot":
-			ws_state_snapshot.emit(message.get("characters", []))
+			ws_state_snapshot.emit(message.get("characters", {}))
 		"script_delta":
 			ws_script_delta.emit(message)
 
@@ -240,6 +240,13 @@ func _request(tag: String, url: String, method: HTTPClient.Method, body: String 
 	)
 	var err := http.request(url, _auth_headers(body != ""), method, body)
 	if err != OK:
+		if _retry.register_failure(tag):
+			var delay := _retry.delay_for(tag)
+			retry_scheduled.emit(tag, _retry.attempts_for(tag), delay)
+			http.queue_free()
+			_retry_after(tag, url, method, body, delay)
+			return
+		_retry.reset(tag)
 		http.queue_free()
 		script_failed.emit("Request failed to start (code %d)" % err)
 
@@ -333,17 +340,29 @@ func _download_audio_lines(lines: Array) -> void:
 
 func _download_audio(line_index: int, url: String) -> void:
 	var downloader := HTTPRequest.new()
+	downloader.timeout = REQUEST_TIMEOUT_S
 	add_child(downloader)
 	downloader.request_completed.connect(
-		func(_r: int, _c: int, _h: PackedStringArray, body: PackedByteArray) -> void:
+		func(result: int, code: int, _h: PackedStringArray, body: PackedByteArray) -> void:
+			if result != HTTPRequest.RESULT_SUCCESS or code < 200 or code >= 300:
+				downloader.queue_free()
+				script_failed.emit("Audio download failed for line %d (result %d, code %d)" % [line_index, result, code])
+				return
 			var audio := AudioStreamWAV.new()
-			audio.load_from_buffer(body)
+			var loaded: AudioStreamWAV = audio.load_from_buffer(body)
+			if loaded == null or body.is_empty():
+				downloader.queue_free()
+				script_failed.emit("Corrupt audio buffer on line %d" % line_index)
+				return
 			if cache != null and _current_script_id != "":
 				cache.cache_audio(_current_script_id, line_index, body)
-			audio_ready.emit(line_index, audio)
+			audio_ready.emit(line_index, loaded)
 			downloader.queue_free()
 	)
-	downloader.request(url)
+	var err := downloader.request(url)
+	if err != OK:
+		downloader.queue_free()
+		script_failed.emit("Audio request failed to start for line %d (code %d)" % [line_index, err])
 
 
 func set_offline(value: bool) -> void:

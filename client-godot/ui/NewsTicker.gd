@@ -33,7 +33,7 @@ func clear() -> void:
 	_headlines.clear()
 	_index = 0
 	text = ""
-	if _timer != null:
+	if _timer != null and _timer.timeout.is_connected(_advance):
 		_timer.timeout.disconnect(_advance)
 
 
@@ -60,7 +60,7 @@ func _advance() -> void:
 
 
 func _restart_timer() -> void:
-	if _timer != null:
+	if _timer != null and _timer.timeout.is_connected(_advance):
 		_timer.timeout.disconnect(_advance)
 	_timer = get_tree().create_timer(ROTATE_INTERVAL_S)
 	_timer.timeout.connect(_advance)

@@ -95,6 +95,8 @@ async def run_with_breaker(breaker: CircuitBreaker, fn):
     otherwise. `fn` may be sync or async.
     """
     if not breaker.allow_request():
+        if hasattr(fn, "close") and callable(fn.close):
+            fn.close()
         raise CircuitOpenError(f"circuit is {breaker.state}")
     try:
         result = fn() if not hasattr(fn, "__await__") else await fn
