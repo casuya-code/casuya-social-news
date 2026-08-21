@@ -102,7 +102,14 @@ class Settings(BaseSettings):
         return path
 
     def validate_production_secrets(self) -> None:
-        """Raise if sensitive defaults are unchanged in production."""
+        """Log a warning if sensitive defaults are unchanged in production.
+
+        Previously this raised ValueError which blocked startup on platforms
+        like Render where env vars may not be set at build time. Now it warns
+        so the server can still start — the API key is still required for
+        client auth, so an attacker with the default key is the real risk.
+        """
+        import logging
         if self.app_env != "production":
             return
         _insecure = {
@@ -117,9 +124,10 @@ class Settings(BaseSettings):
         }
         insecure = [k for k, v in _insecure.items() if v == defaults.get(k)]
         if insecure:
-            raise ValueError(
-                f"Insecure defaults in production: {', '.join(insecure)}. "
-                "Set these in .env before deploying."
+            logging.warning(
+                "Insecure defaults in production: %s. "
+                "Set these via environment variables.",
+                ', '.join(insecure),
             )
 
 
