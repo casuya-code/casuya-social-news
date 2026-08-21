@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: casuya-server
+    runtime: python
+    buildCommand: cd server-python && pip install -r requirements.txt
+    startCommand: cd server-python && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: TTS_PROVIDER
+        value: mock
+      - key: DATABASE_URL
+        fromDatabase:
+          name: casuya-db
+          property: connectionString
+      - key: REDIS_URL
+        fromRedis:
+          name: casuya-redis
+          property: connectionString
+      - key: API_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: SCHEDULER_ENABLED
+        value: "true"
+      - key: SCHEDULER_INTERVAL_SECONDS
+        value: "300"
+    healthCheckPath: /
+    autoDeploy: true
+    disk:
+      name: casuya-storage
+      mountPath: /opt/render/project/server-python/storage
+      sizeGB: 1
+
+databases:
+  - name: casuya-db
+    plan: free
+    databaseName: casuya_db
+    user: casuya_user
+
+  - name: casuya-redis
+    plan: free

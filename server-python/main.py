@@ -67,9 +67,11 @@ app = FastAPI(
 register_exception_handlers(app)
 
 if _settings.allowed_origins:
+    origins = [o.strip() for o in _settings.allowed_origins.split(",") if o.strip()]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[o.strip() for o in _settings.allowed_origins.split(",") if o.strip()],
+        allow_origins=origins,
+        allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -86,11 +88,21 @@ app.mount("/storage", StaticFiles(directory=_settings.storage_dir), name="storag
 
 app.include_router(api_v1_router)
 
+# Serve the Godot web export if it has been built.
+_WEB_EXPORT_DIR = Path(__file__).resolve().parent.parent / "client-godot" / "build" / "web"
+if _WEB_EXPORT_DIR.is_dir():
+    app.mount("/play", StaticFiles(directory=_WEB_EXPORT_DIR, html=True), name="web_export")
+
 
 @app.get("/")
 async def root() -> dict:
     """Simple root route for sanity checks."""
-    return {"service": "casuya-social-news", "docs": "/docs"}
+    web_available = _WEB_EXPORT_DIR.is_dir()
+    return {
+        "service": "casuya-social-news",
+        "docs": "/docs",
+        "play": "/play" if web_available else None,
+    }
 
 
 _OPERATOR_HTML = Path(__file__).resolve().parent / "static" / "operator.html"

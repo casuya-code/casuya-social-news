@@ -58,6 +58,12 @@ func get_weather() -> String:
 	return _weather
 
 
+## Computed lighting state (readable by UI / other systems).
+var computed_color := Color.WHITE
+var computed_energy := 1.0
+var computed_shadow_energy := 0.5
+
+
 func _update() -> void:
 	var preset: Dictionary = TIME_PRESETS.get(_time_of_day, TIME_PRESETS["mchana"])
 	var weather_mod: Dictionary = WEATHER_MODIFIERS.get(_weather, WEATHER_MODIFIERS["angavu"])
@@ -68,8 +74,11 @@ func _update() -> void:
 	var final_color := base_color * color_shift
 	var final_energy := base_energy * energy_mult
 	final_energy *= (1.0 + _mood_offset * 0.15)
+	computed_color = final_color
+	computed_energy = final_energy
+	computed_shadow_energy = preset.get("shadow_energy", 0.5) * energy_mult
 	if _directional_light != null:
 		_directional_light.light_color = final_color
 		_directional_light.light_energy = final_energy
-		_directional_light.shadow_energy = preset.get("shadow_energy", 0.5) * energy_mult
+		_directional_light.shadow_energy = computed_shadow_energy
 	light_updated.emit("directional", final_color, final_energy)

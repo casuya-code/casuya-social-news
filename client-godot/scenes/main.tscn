@@ -1,77 +1,87 @@
-[gd_scene load_steps=7 format=3 uid="uid://casuya_main_v2"]
+[gd_scene load_steps=8 format=3 uid="uid://casuya_main_v2"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" path="res://audio/OverlapSpeechPlayer.gd" id="2_drama"]
 [ext_resource type="Script" path="res://ui/WeatherWidget.gd" id="3_weather"]
 [ext_resource type="Script" path="res://ui/NewsTicker.gd" id="4_ticker"]
 [ext_resource type="Script" path="res://ui/CastPanel.gd" id="5_cast"]
+[ext_resource type="Theme" path="res://ui/theme/casuya_theme.tres" id="6_theme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
-bg_color = Color(0.12, 0.14, 0.22, 1)
-border_width_bottom = 2
-border_color = Color(0.2, 0.6, 0.9, 0.6)
-content_margin_left = 16
-content_margin_right = 16
-content_margin_top = 10
-content_margin_bottom = 10
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_left = 8
-corner_radius_bottom_right = 8
+bg_color = Color(0.1, 0.12, 0.18, 1)
+border_width_bottom = 0
+border_width_left = 0
+border_width_right = 0
+border_width_top = 0
+content_margin_left = 20
+content_margin_right = 20
+content_margin_top = 16
+content_margin_bottom = 16
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_left = 0
+corner_radius_bottom_right = 0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_news"]
-bg_color = Color(0.08, 0.1, 0.16, 0.95)
-border_width_left = 3
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.15, 0.5, 0.8, 0.5)
-content_margin_left = 14
-content_margin_right = 14
-content_margin_top = 10
-content_margin_bottom = 10
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_left = 6
-corner_radius_bottom_right = 6
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_drama"]
-bg_color = Color(0.06, 0.07, 0.12, 0.98)
-border_width_left = 3
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.9, 0.65, 0.2, 0.5)
-content_margin_left = 14
-content_margin_right = 14
+bg_color = Color(0.06, 0.08, 0.12, 0.9)
+border_width_bottom = 0
+border_width_left = 0
+border_width_right = 0
+border_width_top = 0
+content_margin_left = 16
+content_margin_right = 16
 content_margin_top = 12
 content_margin_bottom = 12
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_left = 6
-corner_radius_bottom_right = 6
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_left = 12
+corner_radius_bottom_right = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_drama"]
+bg_color = Color(0.08, 0.1, 0.16, 0.95)
+border_width_bottom = 2
+border_width_left = 2
+border_width_right = 2
+border_width_top = 2
+border_color = Color(0.3, 0.6, 0.9, 0.4)
+content_margin_left = 18
+content_margin_right = 18
+content_margin_top = 16
+content_margin_bottom = 16
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_left = 16
+corner_radius_bottom_right = 16
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_vote"]
-bg_color = Color(0.1, 0.12, 0.18, 0.95)
-border_width_top = 1
-border_color = Color(0.3, 0.35, 0.5, 0.6)
-content_margin_left = 10
-content_margin_right = 10
-content_margin_top = 8
-content_margin_bottom = 8
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_left = 4
-corner_radius_bottom_right = 4
+bg_color = Color(0.12, 0.14, 0.2, 0.95)
+border_width_bottom = 0
+border_width_left = 0
+border_width_right = 0
+border_width_top = 0
+content_margin_left = 16
+content_margin_right = 16
+content_margin_top = 14
+content_margin_bottom = 14
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_left = 12
+corner_radius_bottom_right = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar"]
-bg_color = Color(0.07, 0.08, 0.13, 1)
-border_width_top = 1
-border_color = Color(0.2, 0.25, 0.4, 0.5)
-content_margin_left = 10
-content_margin_right = 10
-content_margin_top = 6
-content_margin_bottom = 6
+bg_color = Color(0.08, 0.1, 0.15, 1)
+border_width_bottom = 0
+border_width_left = 0
+border_width_right = 0
+border_width_top = 0
+content_margin_left = 16
+content_margin_right = 16
+content_margin_top = 12
+content_margin_bottom = 12
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_left = 0
+corner_radius_bottom_right = 0
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -80,6 +90,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("6_theme")
 script = ExtResource("1_main")
 
 [node name="Background" type="ColorRect" parent="."]
@@ -89,7 +100,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.055, 0.06, 0.095, 1)
+color = Color(0.04, 0.05, 0.08, 1)
 
 [node name="VBox" type="VBoxContainer" parent="."]
 layout_mode = 1
@@ -102,7 +113,7 @@ offset_right = 0.0
 offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 0
+theme_override_constants/separation = 8
 
 [node name="HeaderPanel" type="PanelContainer" parent="VBox"]
 layout_mode = 2
@@ -111,31 +122,31 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="HeaderVBox" type="VBoxContainer" parent="VBox/HeaderPanel"]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 6
 
 [node name="TitleLabel" type="Label" parent="VBox/HeaderPanel/HeaderVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "CASUYA SOCIAL NEWS"
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(1, 0.82, 0.32, 1)
-theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.3, 0.8, 0.95, 1)
+theme_override_font_sizes/font_size = 24
 
 [node name="StatusLabel" type="Label" parent="VBox/HeaderPanel/HeaderVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Bofya 'Anza' kuanza"
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.6, 0.65, 0.75, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.7, 0.75, 0.85, 1)
+theme_override_font_sizes/font_size = 14
 
 [node name="LiveLabel" type="Label" parent="VBox/HeaderPanel/HeaderVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.4, 0.82, 0.5, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.4, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 13
 
 [node name="NewsPanel" type="PanelContainer" parent="VBox"]
 layout_mode = 2
@@ -144,7 +155,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_news")
 
 [node name="NewsVBox" type="VBoxContainer" parent="VBox/NewsPanel"]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 8
 
 [node name="TickerLabel" type="Label" parent="VBox/NewsPanel/NewsVBox"]
 unique_name_in_owner = true
@@ -152,8 +163,8 @@ layout_mode = 2
 text = ""
 horizontal_alignment = 1
 autowrap_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.7, 0.9, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.65, 0.75, 0.95, 1)
+theme_override_font_sizes/font_size = 13
 script = ExtResource("4_ticker")
 
 [node name="WeatherLabel" type="Label" parent="VBox/NewsPanel/NewsVBox"]
@@ -161,14 +172,14 @@ unique_name_in_owner = true
 layout_mode = 2
 text = ""
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.45, 0.58, 0.68, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.5, 0.62, 0.72, 1)
+theme_override_font_sizes/font_size = 12
 script = ExtResource("3_weather")
 
 [node name="CastPanel" type="VBoxContainer" parent="VBox/NewsPanel"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 4
 script = ExtResource("5_cast")
 
 [node name="OfflineBanner" type="Label" parent="VBox/NewsPanel"]
@@ -177,8 +188,8 @@ visible = false
 layout_mode = 2
 text = "Nje ya mtandao — hadithi zilizohifadhiwa zinapatikana"
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.95, 0.55, 0.3, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(1, 0.6, 0.35, 1)
+theme_override_font_sizes/font_size = 12
 
 [node name="DramaPanel" type="PanelContainer" parent="VBox"]
 layout_mode = 2
@@ -187,7 +198,7 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_drama")
 
 [node name="DramaVBox" type="VBoxContainer" parent="VBox/DramaPanel"]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 10
 
 [node name="HeadlineLabel" type="Label" parent="VBox/DramaPanel/DramaVBox"]
 unique_name_in_owner = true
@@ -195,20 +206,20 @@ layout_mode = 2
 text = ""
 horizontal_alignment = 1
 autowrap_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.72, 0.95, 1)
-theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.75, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 16
 
 [node name="Sep1" type="HSeparator" parent="VBox/DramaPanel/DramaVBox"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 
 [node name="CharacterLabel" type="Label" parent="VBox/DramaPanel/DramaVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(1, 0.773, 0.31, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.95, 0.8, 0.35, 1)
+theme_override_font_sizes/font_size = 20
 
 [node name="DialogueLabel" type="Label" parent="VBox/DramaPanel/DramaVBox"]
 unique_name_in_owner = true
@@ -216,16 +227,16 @@ layout_mode = 2
 text = ""
 horizontal_alignment = 1
 autowrap_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.92, 0.96, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.95, 0.97, 1, 1)
+theme_override_font_sizes/font_size = 22
 
 [node name="EmotionLabel" type="Label" parent="VBox/DramaPanel/DramaVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.45, 0.5, 0.62, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.5, 0.55, 0.67, 1)
+theme_override_font_sizes/font_size = 12
 
 [node name="VotePanel" type="PanelContainer" parent="VBox"]
 unique_name_in_owner = true
@@ -236,35 +247,35 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_vote")
 
 [node name="VoteVBox" type="VBoxContainer" parent="VBox/VotePanel"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 12
 
 [node name="VoteRow" type="HBoxContainer" parent="VBox/VotePanel/VoteVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="MsisimkoButton" type="Button" parent="VBox/VotePanel/VoteVBox/VoteRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(70, 36)
+custom_minimum_size = Vector2(75, 48)
 layout_mode = 2
 text = "Msisimko"
 
 [node name="FurahaButton" type="Button" parent="VBox/VotePanel/VoteVBox/VoteRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(70, 36)
+custom_minimum_size = Vector2(75, 48)
 layout_mode = 2
 text = "Furaha"
 
 [node name="WasiwasiButton" type="Button" parent="VBox/VotePanel/VoteVBox/VoteRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(70, 36)
+custom_minimum_size = Vector2(75, 48)
 layout_mode = 2
 text = "Wasiwasi"
 
 [node name="UtulivuButton" type="Button" parent="VBox/VotePanel/VoteVBox/VoteRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(70, 36)
+custom_minimum_size = Vector2(75, 48)
 layout_mode = 2
 text = "Utulivu"
 
@@ -273,8 +284,8 @@ unique_name_in_owner = true
 layout_mode = 2
 text = ""
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(1, 0.773, 0.31, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.95, 0.8, 0.35, 1)
+theme_override_font_sizes/font_size = 13
 
 [node name="ActionBar" type="PanelContainer" parent="VBox"]
 layout_mode = 2
@@ -285,35 +296,35 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_bar")
 unique_name_in_owner = true
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="StartButton" type="Button" parent="VBox/ActionBar/ButtonRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(60, 42)
+custom_minimum_size = Vector2(70, 52)
 layout_mode = 2
 text = "Anza"
 
 [node name="ListenButton" type="Button" parent="VBox/ActionBar/ButtonRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(60, 42)
+custom_minimum_size = Vector2(70, 52)
 layout_mode = 2
 text = "Sikiliza"
 
 [node name="NextButton" type="Button" parent="VBox/ActionBar/ButtonRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(60, 42)
+custom_minimum_size = Vector2(70, 52)
 layout_mode = 2
 text = "Hadithi Mpya"
 
 [node name="OperatorButton" type="Button" parent="VBox/ActionBar/ButtonRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(60, 42)
+custom_minimum_size = Vector2(70, 52)
 layout_mode = 2
 text = "Msimamizi"
 
 [node name="SettingsButton" type="Button" parent="VBox/ActionBar/ButtonRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(60, 42)
+custom_minimum_size = Vector2(70, 52)
 layout_mode = 2
 text = "Mipangilio"
 

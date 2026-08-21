@@ -26,6 +26,9 @@ func _ready() -> void:
 	close_button.pressed.connect(_close)
 	retention_button.pressed.connect(func() -> void: Network.run_retention(false))
 	dry_run_button.pressed.connect(func() -> void: Network.run_retention(true))
+	# Tap backdrop to dismiss.
+	var backdrop: Control = $Backdrop
+	backdrop.gui_input.connect(_on_backdrop_input)
 	_refresh_all()
 
 
@@ -123,6 +126,11 @@ func _close() -> void:
 	Network.retention_result.disconnect(_on_retention_result)
 	Network.latest_news_loaded.disconnect(_on_latest_news_loaded)
 	queue_free()
+
+
+func _on_backdrop_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_close()
 
 
 func _unhandled_key_input(event: InputEvent) -> void:

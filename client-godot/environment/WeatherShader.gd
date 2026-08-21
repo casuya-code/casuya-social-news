@@ -86,11 +86,24 @@ func _process(delta: float) -> void:
 	_sky_material.sky_horizon_color = _sky_material.sky_horizon_color.lerp(target_sky.lightened(0.2), delta * _transition_speed)
 
 
+## Computed visual state (readable by UI / other systems).
+var computed_sky_color := Color(0.4, 0.6, 0.9)
+var computed_fog_density := 0.0
+var computed_sun_energy := 1.0
+var computed_cloud_density := 0.1
+var computed_particle_count := 0
+
+
 func _apply() -> void:
 	if _target_preset.is_empty():
 		return
-	var fog_density: float = _target_preset.get("fog_density", 0.0)
-	var sun_energy: float = _target_preset.get("sun_energy", 1.0)
+	computed_sky_color = _target_preset.get("sky_color", Color.WHITE)
+	computed_fog_density = _target_preset.get("fog_density", 0.0)
+	computed_sun_energy = _target_preset.get("sun_energy", 1.0)
+	computed_cloud_density = _target_preset.get("cloud_density", 0.1)
+	computed_particle_count = _target_preset.get("particle_count", 0)
+	var fog_density: float = computed_fog_density
+	var sun_energy: float = computed_sun_energy
 	if _environment != null:
 		_environment.fog_density = fog_density
 		_environment.volumetric_fog_density = fog_density * 0.5

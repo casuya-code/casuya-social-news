@@ -16,10 +16,13 @@ router = APIRouter(dependencies=[Depends(verify_api_key)])
 
 
 class WeatherResponse(BaseModel):
-    temp: float | None = None
-    description: str = ""
     location: str = ""
+    condition: str = ""
+    mood_offset: float = 0.0
     time_of_day: str = ""
+    source: str = "mock"
+    captured_at: str | None = None
+    temp: float | None = None
 
 
 @router.get("", response_model=WeatherResponse)

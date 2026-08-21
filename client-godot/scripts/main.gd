@@ -47,6 +47,7 @@ const LightBakerScene := preload("res://environment/LightBaker.gd")
 const WeatherShaderScene := preload("res://environment/WeatherShader.gd")
 const CrowdGeneratorScene := preload("res://environment/CrowdGenerator.gd")
 const CharacterControllerScene := preload("res://characters/CharacterController.gd")
+const HapticScene := preload("res://ui/HapticFeedback.gd")
 
 var _scripts: Array = []
 var _current_script: Dictionary = {}
@@ -78,6 +79,7 @@ var _weather_shader: Node
 var _crowd_generator: Node
 # Active character controllers per character_id
 var _characters: Dictionary = {}  # character_id -> CharacterController
+var _haptic: HapticFeedback
 
 
 func _ready() -> void:
@@ -127,6 +129,7 @@ func _build_feedback_layers() -> void:
 	_procedural_camera = ProceduralCameraScene.new()
 	_procedural_camera.name = "ProceduralCamera"
 	add_child(_procedural_camera)
+	_procedural_camera.setup_composer(_shot_composer)
 
 	# Environment systems (Features #29, #30, #31)
 	_light_baker = LightBakerScene.new()
@@ -143,6 +146,9 @@ func _build_feedback_layers() -> void:
 	_settings.load_settings()
 	_settings.changed.connect(_on_settings_changed)
 	_apply_settings()
+
+	_haptic = HapticScene.new()
+	add_child(_haptic)
 
 	_fetch_weather()
 
@@ -276,6 +282,7 @@ func _cast_vote(direction: String) -> void:
 	for button in [msisimko_button, furaha_button, wasiwasi_button, utulivu_button]:
 		button.disabled = true
 	vote_result_label.text = "Kupiga kura..."
+	_haptic.trigger(HapticFeedback.HapticType.MEDIUM)
 	Network.cast_vote(script_id, direction)
 
 
@@ -417,6 +424,7 @@ func _on_audio_ready(line_index: int, audio: AudioStream) -> void:
 		next_button.show()
 		_loading.finish()
 		_playing = true
+		_haptic.trigger(HapticFeedback.HapticType.SUCCESS)
 		drama.play(_lines, _audio)
 
 
@@ -467,6 +475,9 @@ func _on_audio_finished() -> void:
 		vote_panel.show()
 		for button in [msisimko_button, furaha_button, wasiwasi_button, utulivu_button]:
 			button.disabled = false
+	else:
+		# Story done, voted — re-enable start so user can fetch fresh batch.
+		start_button.disabled = false
 
 
 func _on_next_pressed() -> void:
@@ -499,9 +510,12 @@ func _on_api_error(error_code: String, _raw_message: String) -> void:
 func _handle_failure(message: String) -> void:
 	status_label.text = "Hitilafu: " + message
 	_notify(message, true)
+	_haptic.trigger(HapticFeedback.HapticType.ERROR)
 	_loading.finish()
 	start_button.disabled = false
 	next_button.hide()
+	_busy = false
+	_playing = false
 
 	# Offline recovery: replay the most recently cached story.
 	if Network.is_offline:

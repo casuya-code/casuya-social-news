@@ -57,6 +57,12 @@ func _ready() -> void:
 	_retry = RetryHandler.new()
 	_retry.max_retries = _max_retries
 	_retry.base_delay_s = _retry_delay_s
+	# In web builds, auto-detect the server URL from the page origin.
+	# This allows the web export to connect to whatever host serves it.
+	if OS.has_feature("web"):
+		var origin: String = JavaScriptBridge.eval("window.location.origin")
+		if origin != null and origin != "" and origin != "file://":
+			base_url = origin
 	if ws_enabled:
 		connect_ws()
 

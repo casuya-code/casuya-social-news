@@ -87,7 +87,8 @@ class Settings(BaseSettings):
     retention_cycle_frequency: int = 12  # ~1h at the default 300s interval
 
     # CORS (comma-separated origins, empty = no browser access)
-    allowed_origins: str = ""
+    # In development, allow localhost origins so the Godot web export works.
+    allowed_origins: str = "http://localhost:8080,http://localhost:9000,http://127.0.0.1:8080,http://127.0.0.1:9000"
 
     # Logging
     log_level: str = "INFO"

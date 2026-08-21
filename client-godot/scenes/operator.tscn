@@ -1,44 +1,53 @@
-[gd_scene load_steps=4 format=3 uid="uid://casuya_op_v2"]
+[gd_scene load_steps=6 format=3 uid="uid://casuya_op_v2"]
 
 [ext_resource type="Script" path="res://scripts/operator.gd" id="1_op"]
+[ext_resource type="Script" path="res://ui/OperatorScroll.gd" id="2_scroll"]
+[ext_resource type="Theme" path="res://ui/theme/casuya_theme.tres" id="3_theme"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
-bg_color = Color(0.12, 0.14, 0.22, 1)
-border_width_bottom = 2
-border_color = Color(0.9, 0.65, 0.2, 0.6)
+bg_color = Color(0.1, 0.12, 0.18, 1)
+border_width_bottom = 0
+border_width_left = 0
+border_width_right = 0
+border_width_top = 0
+content_margin_left = 20
+content_margin_right = 20
+content_margin_top = 16
+content_margin_bottom = 16
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_left = 0
+corner_radius_bottom_right = 0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_section"]
+bg_color = Color(0.06, 0.08, 0.12, 0.9)
+border_width_bottom = 0
+border_width_left = 0
+border_width_right = 0
+border_width_top = 0
 content_margin_left = 16
 content_margin_right = 16
 content_margin_top = 12
 content_margin_bottom = 12
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_left = 8
-corner_radius_bottom_right = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_section"]
-bg_color = Color(0.07, 0.09, 0.14, 0.95)
-border_width_left = 3
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.2, 0.5, 0.8, 0.4)
-content_margin_left = 14
-content_margin_right = 14
-content_margin_top = 10
-content_margin_bottom = 10
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_left = 5
-corner_radius_bottom_right = 5
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_left = 12
+corner_radius_bottom_right = 12
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar"]
-bg_color = Color(0.07, 0.08, 0.13, 1)
-border_width_top = 1
-border_color = Color(0.25, 0.3, 0.45, 0.5)
-content_margin_left = 10
-content_margin_right = 10
-content_margin_top = 8
-content_margin_bottom = 8
+bg_color = Color(0.08, 0.1, 0.15, 1)
+border_width_bottom = 0
+border_width_left = 0
+border_width_right = 0
+border_width_top = 0
+content_margin_left = 16
+content_margin_right = 16
+content_margin_top = 12
+content_margin_bottom = 12
+corner_radius_top_left = 0
+corner_radius_top_right = 0
+corner_radius_bottom_left = 0
+corner_radius_bottom_right = 0
 
 [node name="Operator" type="Control"]
 layout_mode = 3
@@ -47,6 +56,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("3_theme")
 script = ExtResource("1_op")
 
 [node name="Backdrop" type="ColorRect" parent="."]
@@ -56,20 +66,20 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.04, 0.05, 0.08, 0.97)
+color = Color(0.04, 0.05, 0.08, 0.98)
 
 [node name="VBox" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 12.0
-offset_top = 20.0
-offset_right = -12.0
-offset_bottom = -20.0
+offset_left = 16.0
+offset_top = 24.0
+offset_right = -16.0
+offset_bottom = -24.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 0
 
 [node name="HeaderPanel" type="PanelContainer" parent="VBox"]
 layout_mode = 2
@@ -77,104 +87,116 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_header")
 
 [node name="HeaderVBox" type="VBoxContainer" parent="VBox/HeaderPanel"]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 6
 
 [node name="OpTitle" type="Label" parent="VBox/HeaderPanel/HeaderVBox"]
 layout_mode = 2
 text = "MSIMAMIZI — JOPO LA UENDESHAJI"
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(1, 0.82, 0.32, 1)
-theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.3, 0.8, 0.95, 1)
+theme_override_font_sizes/font_size = 18
 
 [node name="OpStatusLabel" type="Label" parent="VBox/HeaderPanel/HeaderVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Inapakia..."
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.4, 0.82, 0.5, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.4, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 14
 
-[node name="HealthPanel" type="PanelContainer" parent="VBox"]
+[node name="ScrollArea" type="ScrollContainer" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 1.0
+script = ExtResource("2_scroll")
+
+[node name="ScrollVBox" type="VBoxContainer" parent="VBox/ScrollArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="HealthPanel" type="PanelContainer" parent="VBox/ScrollArea/ScrollVBox"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_section")
 
-[node name="HealthVBox" type="VBoxContainer" parent="VBox/HealthPanel"]
+[node name="HealthVBox" type="VBoxContainer" parent="VBox/ScrollArea/ScrollVBox/HealthPanel"]
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 6
 
-[node name="HealthHeader" type="Label" parent="VBox/HealthPanel/HealthVBox"]
+[node name="HealthHeader" type="Label" parent="VBox/ScrollArea/ScrollVBox/HealthPanel/HealthVBox"]
 layout_mode = 2
 text = "Hali ya Huduma"
 theme_override_colors/font_color = Color(0.5, 0.6, 0.75, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 13
 
-[node name="OpDbLabel" type="Label" parent="VBox/HealthPanel/HealthVBox"]
+[node name="OpDbLabel" type="Label" parent="VBox/ScrollArea/ScrollVBox/HealthPanel/HealthVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "DB: —"
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 
-[node name="OpCacheLabel" type="Label" parent="VBox/HealthPanel/HealthVBox"]
+[node name="OpCacheLabel" type="Label" parent="VBox/ScrollArea/ScrollVBox/HealthPanel/HealthVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Cache: —"
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 
-[node name="OpTtsLabel" type="Label" parent="VBox/HealthPanel/HealthVBox"]
+[node name="OpTtsLabel" type="Label" parent="VBox/ScrollArea/ScrollVBox/HealthPanel/HealthVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "TTS: —"
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 
-[node name="OpSchedLabel" type="Label" parent="VBox/HealthPanel/HealthVBox"]
+[node name="OpSchedLabel" type="Label" parent="VBox/ScrollArea/ScrollVBox/HealthPanel/HealthVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Scheduler: —"
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 
-[node name="OpCircuitLabel" type="Label" parent="VBox/HealthPanel/HealthVBox"]
+[node name="OpCircuitLabel" type="Label" parent="VBox/ScrollArea/ScrollVBox/HealthPanel/HealthVBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Mzunguko wa TTS: —"
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 14
 
-[node name="ScriptsPanel" type="PanelContainer" parent="VBox"]
+[node name="ScriptsPanel" type="PanelContainer" parent="VBox/ScrollArea/ScrollVBox"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_section")
 
-[node name="ScriptsVBox" type="VBoxContainer" parent="VBox/ScriptsPanel"]
+[node name="ScriptsVBox" type="VBoxContainer" parent="VBox/ScrollArea/ScrollVBox/ScriptsPanel"]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 6
 
-[node name="ScriptsHeader" type="Label" parent="VBox/ScriptsPanel/ScriptsVBox"]
+[node name="ScriptsHeader" type="Label" parent="VBox/ScrollArea/ScrollVBox/ScriptsPanel/ScriptsVBox"]
 layout_mode = 2
 text = "Hadithi za Karibuni"
 theme_override_colors/font_color = Color(0.5, 0.6, 0.75, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 13
 
-[node name="OpScriptsBox" type="VBoxContainer" parent="VBox/ScriptsPanel/ScriptsVBox"]
+[node name="OpScriptsBox" type="VBoxContainer" parent="VBox/ScrollArea/ScrollVBox/ScriptsPanel/ScriptsVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 6
 
-[node name="NewsPanel" type="PanelContainer" parent="VBox"]
+[node name="NewsPanel" type="PanelContainer" parent="VBox/ScrollArea/ScrollVBox"]
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_section")
 
-[node name="NewsVBox" type="VBoxContainer" parent="VBox/NewsPanel"]
+[node name="NewsVBox" type="VBoxContainer" parent="VBox/ScrollArea/ScrollVBox/NewsPanel"]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 6
 
-[node name="NewsHeader" type="Label" parent="VBox/NewsPanel/NewsVBox"]
+[node name="NewsHeader" type="Label" parent="VBox/ScrollArea/ScrollVBox/NewsPanel/NewsVBox"]
 layout_mode = 2
 text = "Habari za Karibuni"
 theme_override_colors/font_color = Color(0.5, 0.6, 0.75, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 13
 
-[node name="OpNewsBox" type="VBoxContainer" parent="VBox/NewsPanel/NewsVBox"]
+[node name="OpNewsBox" type="VBoxContainer" parent="VBox/ScrollArea/ScrollVBox/NewsPanel/NewsVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 6
 
 [node name="ActionBar" type="PanelContainer" parent="VBox"]
 layout_mode = 2
@@ -183,22 +205,22 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_bar")
 [node name="OpActions" type="HBoxContainer" parent="VBox/ActionBar"]
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
 [node name="OpDryRunButton" type="Button" parent="VBox/ActionBar/OpActions"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 38)
+custom_minimum_size = Vector2(100, 48)
 layout_mode = 2
 text = "Uchambuzi"
 
 [node name="OpRetentionButton" type="Button" parent="VBox/ActionBar/OpActions"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 38)
+custom_minimum_size = Vector2(100, 48)
 layout_mode = 2
 text = "Usafishaji"
 
 [node name="OpCloseButton" type="Button" parent="VBox/ActionBar/OpActions"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 38)
+custom_minimum_size = Vector2(100, 48)
 layout_mode = 2
 text = "Funga"

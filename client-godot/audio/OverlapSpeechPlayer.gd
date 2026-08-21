@@ -4,13 +4,16 @@ extends Node
 ## `overlap: true` (heated scenes) begin before the previous line finishes,
 ## using a second AudioStreamPlayer, so characters genuinely talk over each
 ## other. Non-overlapping lines play strictly sequentially.
+##
+## Uses AudioStreamPlayer (not 3D) for proper audio in a Control (2D) scene.
+## Panning is applied via Audio buses.
 
 signal line_started(index: int)
 signal sequence_finished
 
 const OVERLAP_LEAD_S := 0.35  ## how early an overlapping line starts (before prev ends)
 
-var _players: Array[AudioStreamPlayer3D] = []
+var _players: Array[AudioStreamPlayer] = []
 var _active_player := 0
 var _lines: Array = []
 var _audio: Dictionary = {}  # index -> AudioStream
@@ -21,7 +24,8 @@ var _seq := 0
 
 func _ready() -> void:
 	for i in 2:
-		var player := AudioStreamPlayer3D.new()
+		var player := AudioStreamPlayer.new()
+		player.bus = "Master"
 		add_child(player)
 		_players.append(player)
 		player.finished.connect(func() -> void: _on_player_finished(i))
@@ -119,9 +123,15 @@ func _play_on(slot: int, stream: AudioStream) -> void:
 	_active_player = slot
 
 
-func _on_player_finished(_slot: int) -> void:
-	# Natural end of an audio stream; nothing to do — sequencing is timer driven.
-	pass
+func _on_player_finished(slot: int) -> void:
+	# When a player finishes naturally, if it was the active player and we
+	# are not in overlap mode, advance to the next line. The timer-based
+	# sequencing covers most cases, but this handles short clips that end
+	# before the timer fires.
+	if slot == _active_player and _playing and not is_talking_over():
+		var stream: AudioStream = _audio.get(_index)
+		if stream != null and stream.get_length() < 0.2:
+			_next_line()
 
 
 func _wait(seconds: float, callback: Callable) -> void:
@@ -139,8 +149,8 @@ func get_active_player_index() -> int:
 	return _active_player
 
 
-## The AudioStreamPlayer3D currently carrying this line's voice (for pan/echo).
-func get_active_player() -> AudioStreamPlayer3D:
+## The AudioStreamPlayer currently carrying this line's voice (for volume/pitch).
+func get_active_player() -> AudioStreamPlayer:
 	return _players[_active_player]
 
 

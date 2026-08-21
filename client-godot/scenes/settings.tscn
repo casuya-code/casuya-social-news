@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://ui/SettingsPanel.gd" id="1_set"]
+[ext_resource type="Theme" path="res://ui/theme/casuya_theme.tres" id="2_theme"]
 
 [node name="Settings" type="Control"]
 layout_mode = 3
@@ -9,6 +10,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_theme")
 script = ExtResource("1_set")
 
 [node name="Backdrop" type="ColorRect" parent="."]
@@ -18,67 +20,68 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.06, 0.07, 0.1, 0.96)
+color = Color(0.04, 0.05, 0.08, 0.98)
 
 [node name="VBox" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 24.0
-offset_top = 40.0
-offset_right = -24.0
-offset_bottom = -40.0
+offset_left = 16.0
+offset_top = 32.0
+offset_right = -16.0
+offset_bottom = -32.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 16
 
 [node name="SetTitle" type="Label" parent="VBox"]
 layout_mode = 2
 text = "Mipangilio — Mapendeleo"
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(1, 0.773, 0.31, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.3, 0.8, 0.95, 1)
+theme_override_font_sizes/font_size = 20
 
 [node name="SetStatus" type="Label" parent="VBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = ""
 horizontal_alignment = 1
-theme_override_colors/font_color = Color(0.55, 0.8, 0.55, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.4, 0.9, 0.6, 1)
+theme_override_font_sizes/font_size = 13
 
 [node name="QualityHeader" type="Label" parent="VBox"]
 layout_mode = 2
 text = "Ubora wa Sauti"
-theme_override_colors/font_color = Color(0.45, 0.5, 0.62, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.5, 0.55, 0.67, 1)
+theme_override_font_sizes/font_size = 13
 
 [node name="QualityRow" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
 alignment = 1
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 
 [node name="LowQualityButton" type="Button" parent="VBox/QualityRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Chini (64kbps)"
 
 [node name="HighQualityButton" type="Button" parent="VBox/QualityRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Juu (128kbps)"
 
 [node name="NotificationsRow" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 
 [node name="NotificationsLabel" type="Label" parent="VBox/NotificationsRow"]
 layout_mode = 2
 text = "Arifa za skrini"
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
 
 [node name="NotificationsCheck" type="CheckButton" parent="VBox/NotificationsRow"]
 unique_name_in_owner = true
@@ -86,12 +89,13 @@ layout_mode = 2
 
 [node name="DataRow" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 12
 
 [node name="DataLabel" type="Label" parent="VBox/DataRow"]
 layout_mode = 2
 text = "Akiba ya data (pitisha ubora wa chini)"
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
 
 [node name="DataCheck" type="CheckButton" parent="VBox/DataRow"]
 unique_name_in_owner = true
@@ -99,6 +103,6 @@ layout_mode = 2
 
 [node name="SetCloseButton" type="Button" parent="VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 text = "Funga"

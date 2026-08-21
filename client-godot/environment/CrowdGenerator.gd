@@ -24,9 +24,15 @@ var _density: int = 10
 var _enabled := true
 
 
+## Whether setup() has been called with valid root + mesh.
+var is_configured := false
+
+
 func setup(crowd_root: Node3D, crowd_mesh: PackedScene) -> void:
 	_crowd_root = crowd_root
 	_crowd_mesh = crowd_mesh
+	is_configured = true
+	_rebuild()
 
 
 func set_density(count: int) -> void:

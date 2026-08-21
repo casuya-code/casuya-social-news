@@ -52,11 +52,14 @@ func _window_energy(data: PackedByteArray, offset: int, length: int, format: int
 	var limit := mini(offset + length, data.size())
 	for i in range(offset, limit):
 		if format == AudioStreamWAV.FORMAT_16_BITS and i + 1 < data.size():
-			var sample_val := data[i] | (data[i + 1] << 8)
+			var raw := data[i] | (data[i + 1] << 8)
+			# Sign-extend from 16-bit unsigned to signed.
+			var sample_val := raw if raw < 32768 else raw - 65536
 			sum += absf(float(sample_val) / 32768.0)
 			count += 1
 		elif format == AudioStreamWAV.FORMAT_8_BITS:
-			sum += absf(float(data[i]) / 128.0)
+			var sample_val_8 := data[i] if data[i] < 128 else data[i] - 256
+			sum += absf(float(sample_val_8) / 128.0)
 			count += 1
 	if count == 0:
 		return 0.0

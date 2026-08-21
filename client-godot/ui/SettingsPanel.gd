@@ -21,6 +21,9 @@ func _ready() -> void:
 	data_check.toggled.connect(func(on: bool) -> void: settings.set_data_saving(on))
 	close_button.pressed.connect(_close)
 	settings.changed.connect(_refresh)
+	# Tap backdrop to dismiss.
+	var backdrop: Control = $Backdrop
+	backdrop.gui_input.connect(_on_backdrop_input)
 	_refresh()
 
 
@@ -31,6 +34,11 @@ func _refresh() -> void:
 	notifications_check.set_pressed_no_signal(settings.notifications_enabled())
 	data_check.set_pressed_no_signal(data_saving)
 	status_label.text = "Ubora: %s" % ("Juu (128kbps)" if settings.is_high_quality() and not data_saving else "Chini (64kbps)")
+
+
+func _on_backdrop_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		_close()
 
 
 func _close() -> void:

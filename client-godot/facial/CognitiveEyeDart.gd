@@ -47,7 +47,8 @@ func _process(delta: float) -> void:
 	if _dart_timer <= 0.0:
 		_new_dart()
 		_dart_timer = randf_range(DART_INTERVAL_MIN, DART_INTERVAL_MAX)
-	_dart_offset = _dart_offset.lerp(_target_offset, DART_SPEED / delta)
+	var t := DART_SPEED / maxf(delta, 0.001)
+	_dart_offset = _dart_offset.lerp(_target_offset, t)
 	_target_offset *= DART_DAMPING
 	_apply(_dart_offset)
 
