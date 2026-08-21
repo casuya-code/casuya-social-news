@@ -13,7 +13,7 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
+# Note: client-godot/build/web/ is the Godot web export (committed)
 develop-eggs/
 dist/
 downloads/
