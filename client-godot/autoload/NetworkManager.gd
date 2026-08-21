@@ -34,7 +34,7 @@ const API_PREFIX := "/api/v1"
 const DEFAULT_API_KEY := "dev-api-key"
 const WS_PREFIX := "/api/v1/ws"
 const VOTE_PATH := "/api/v1/economy/vote"
-const REQUEST_TIMEOUT_S := 8.0
+const REQUEST_TIMEOUT_S := 30.0
 
 var base_url: String = DEFAULT_BASE_URL
 var api_key: String = DEFAULT_API_KEY
