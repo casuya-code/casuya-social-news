@@ -47,6 +47,7 @@ func _run() -> void:
 	# Dead endpoint: must retry with backoff, then fail after attempts.
 	_network._retry.max_retries = 3
 	_network._retry.base_delay_s = 0.2
+	_network.request_timeout_s = 2.0
 	_network.base_url = "http://127.0.0.1:9"
 	_network.generate_script("Dead", "Godot Test", "https://example.com/dead")
 	await create_timer(40.0).timeout

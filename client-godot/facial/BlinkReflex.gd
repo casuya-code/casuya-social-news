@@ -15,7 +15,7 @@ const BLINK_DURATION := 0.12
 const REFLEX_COOLDOWN := 0.8
 
 var _character_id: String
-var _eye_node: Node3D
+var _eye_node: Node2D
 var _blink_timer := 0.0
 var _next_blink := 0.0
 var _blinking := false
@@ -24,7 +24,7 @@ var _reflex_cooldown := 0.0
 var _enabled := true
 
 
-func setup(character_id: String, eye_node: Node3D) -> void:
+func setup(character_id: String, eye_node: Node2D) -> void:
 	_character_id = character_id
 	_eye_node = eye_node
 	_reset_timer()

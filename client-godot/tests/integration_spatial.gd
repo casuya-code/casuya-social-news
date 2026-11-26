@@ -13,7 +13,7 @@ const OCCLUSION_SCRIPT := preload("res://audio/AcousticOcclusion.gd")
 
 var _spatial: Node
 var _occlusion: Node
-var _player: AudioStreamPlayer3D
+var _player: AudioStreamPlayer2D
 
 
 func _init() -> void:
@@ -27,7 +27,7 @@ func _run() -> void:
 	root.add_child(_spatial)
 	_occlusion = OCCLUSION_SCRIPT.new()
 	root.add_child(_occlusion)
-	_player = AudioStreamPlayer3D.new()
+	_player = AudioStreamPlayer2D.new()
 	root.add_child(_player)
 
 	# --- Feature #32: spatial pan ---

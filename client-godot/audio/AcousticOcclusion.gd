@@ -57,13 +57,18 @@ func weather_bias() -> float:
 
 ## Apply occlusion acoustics to an audio player for a character. Returns the
 ## applied factor.
-func apply_to(player: AudioStreamPlayer, character_id: String, emotion: String) -> float:
+func apply_to(player: Node, character_id: String, emotion: String) -> float:
 	var factor := factor_for_emotion(emotion)
 	player.volume_db = attenuation_db(factor) + _weather_bias * MAX_WEATHER_DB
 	player.pitch_scale = pitch_scale(factor) + _weather_bias * MAX_WEATHER_PITCH
 	_factors[character_id] = factor
 	occlusion_changed.emit(character_id, factor)
 	return factor
+
+
+## Echo amount for a given occlusion factor (more muffled = more echo).
+func echo_amount(factor: float) -> float:
+	return clampf(factor, 0.0, 1.0)
 
 
 func factor_for(character_id: String) -> float:

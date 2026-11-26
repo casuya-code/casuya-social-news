@@ -6,8 +6,8 @@ extends SceneTree
 const CACHE_SCRIPT := preload("res://storage/OfflineCache.gd")
 const DRAMA_SCRIPT := preload("res://audio/OverlapSpeechPlayer.gd")
 
-var _cache: OfflineCache
-var _drama: OverlapSpeechPlayer
+var _cache
+var _drama
 var _audio_lines_loaded := 0
 var _test_script_id := "test_story_offline_001"
 var _started_lines: Array[int] = []
@@ -56,7 +56,7 @@ func _run() -> void:
 		return
 
 	# Simulate offline loading pipeline
-	var loaded_script := _cache.load_script(_test_script_id)
+	var loaded_script: Dictionary = _cache.load_script(_test_script_id)
 	if loaded_script.is_empty():
 		_fail("load_script returned empty")
 		return
@@ -64,7 +64,7 @@ func _run() -> void:
 	var lines: Array = loaded_script.get("lines", [])
 	var audio_map: Dictionary = {}
 	for i in range(lines.size()):
-		var audio_bytes := _cache.load_audio(_test_script_id, i)
+		var audio_bytes: PackedByteArray = _cache.load_audio(_test_script_id, i)
 		if audio_bytes.is_empty():
 			_fail("load_audio returned empty bytes for line %d" % i)
 			return

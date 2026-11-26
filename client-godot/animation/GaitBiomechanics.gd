@@ -21,10 +21,10 @@ var _speed := 2.0
 var _stride := 0.6
 var _stoop := 0.02
 var _bounce := 0.01
-var _body: Node3D
+var _body: Node2D
 
 
-func setup(body: Node3D) -> void:
+func setup(body: Node2D) -> void:
 	_body = body
 
 
@@ -36,7 +36,7 @@ func set_age(age: String) -> void:
 	_stoop = profile["stoop"]
 	_bounce = profile["bounce"]
 	if _body != null:
-		_body.rotation.x = _stoop
+		_body.rotation = _stoop
 
 
 func get_speed() -> float:

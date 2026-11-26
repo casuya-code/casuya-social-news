@@ -10,7 +10,7 @@ extends SceneTree
 const SETTINGS_SCRIPT := preload("res://settings/AppSettings.gd")
 const PANEL_SCRIPT := preload("res://scenes/settings.tscn")
 
-var _settings: AppSettings
+var _settings
 var _unique := str(Time.get_unix_time_from_system())
 var _changed_count := 0
 
@@ -39,7 +39,7 @@ func _run() -> void:
 
 	# --- setters + change signal ---
 	_settings.changed.connect(func() -> void: _changed_count += 1)
-	_settings.set_quality(AppSettings.AudioQuality.LOW)
+	_settings.set_quality(_settings.AudioQuality.LOW)
 	_settings.set_notifications(false)
 	_settings.set_data_saving(true)
 	if _changed_count != 3:

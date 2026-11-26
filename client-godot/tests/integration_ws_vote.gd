@@ -36,9 +36,15 @@ func _init() -> void:
 func _on_ws_connected() -> void:
 	_steps += 1
 	print("[TEST] ws_connected (step %d)" % _steps)
-	# Trigger a broadcast: fresh mock stories -> script_delta pushed.
+	# Trigger a broadcast deterministically: generate a unique script so a
+	# script_delta is always pushed, even when dedupe has no fresh news.
 	var network: Node = root.get_node("Network")
-	network.refresh_news()
+	var unique := str(Time.get_unix_time_from_system())
+	network.generate_script(
+		"Habari ya mtihani wa kura %s" % unique,
+		"Godot Test",
+		"https://example.com/ws-vote-%s" % unique
+	)
 
 
 func _on_state_snapshot(characters: Dictionary) -> void:

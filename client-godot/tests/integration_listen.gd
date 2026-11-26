@@ -35,8 +35,14 @@ func _init() -> void:
 func _on_ws_connected() -> void:
 	_steps += 1
 	print("[TEST] ws_connected (step %d)" % _steps)
-	# Trigger a broadcast: fresh mock stories -> script_delta pushed.
-	root.get_node("Network").refresh_news()
+	# Trigger a deterministic broadcast so the test doesn't depend on dedupe.
+	var network: Node = root.get_node("Network")
+	var unique := str(Time.get_unix_time_from_system())
+	network.generate_script(
+		"Habari ya sikiliza %s" % unique,
+		"Godot Test",
+		"https://example.com/listen-%s" % unique
+	)
 
 
 func _on_script_delta(delta: Dictionary) -> void:
@@ -53,6 +59,8 @@ func _on_script_delta(delta: Dictionary) -> void:
 
 
 func _on_script_loaded(script: Dictionary) -> void:
+	if script.get("script_id", "") == _script_id and _script_lines > 0:
+		return  # Ignore duplicate (generate response + fetch_script response).
 	_steps += 1
 	_script_lines = (script.get("lines", []) as Array).size()
 	print("[TEST] script_loaded id=%s lines=%d (step %d)" % [

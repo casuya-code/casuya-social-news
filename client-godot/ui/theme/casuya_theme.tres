@@ -1,23 +1,5 @@
 [gd_resource type="Theme" format=3 uid="uid://casuya_theme_modern"]
 
-[resource]
-Button/colors/font_color = Color(1, 1, 1, 1)
-Button/colors/font_color_disabled = Color(0.5, 0.5, 0.5, 1)
-Button/colors/font_color_hover = Color(1, 1, 1, 1)
-Button/colors/font_color_pressed = Color(0.9, 0.9, 0.9, 1)
-Button/constants/h_separation = 12
-Button/constants/v_separation = 6
-Button/font_sizes/font_size = 16
-Button/styles/hover = SubResource("StyleBoxFlat_button_hover")
-Button/styles/normal = SubResource("StyleBoxFlat_button_normal")
-Button/styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-Label/colors/font_color = Color(0.95, 0.95, 0.95, 1)
-Label/colors/font_color_disabled = Color(0.5, 0.5, 0.5, 1)
-Label/font_sizes/font_size = 16
-PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel")
-VBoxContainer/constants/separation = 12
-HBoxContainer/constants/separation = 12
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
 bg_color = Color(0.2, 0.7, 0.9, 1)
 border_width_bottom = 2
@@ -84,3 +66,21 @@ content_margin_top = 16
 shadow_color = Color(0, 0, 0, 0.3)
 shadow_offset_x = 0
 shadow_offset_y = 2
+
+[resource]
+Button/colors/font_color = Color(1, 1, 1, 1)
+Button/colors/font_color_disabled = Color(0.5, 0.5, 0.5, 1)
+Button/colors/font_color_hover = Color(1, 1, 1, 1)
+Button/colors/font_color_pressed = Color(0.9, 0.9, 0.9, 1)
+Button/constants/h_separation = 12
+Button/constants/v_separation = 6
+Button/font_sizes/font_size = 16
+Button/styles/hover = SubResource("StyleBoxFlat_button_hover")
+Button/styles/normal = SubResource("StyleBoxFlat_button_normal")
+Button/styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+Label/colors/font_color = Color(0.95, 0.95, 0.95, 1)
+Label/colors/font_color_disabled = Color(0.5, 0.5, 0.5, 1)
+Label/font_sizes/font_size = 16
+PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel")
+VBoxContainer/constants/separation = 12
+HBoxContainer/constants/separation = 12

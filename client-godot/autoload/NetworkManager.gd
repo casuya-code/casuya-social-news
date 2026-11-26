@@ -34,7 +34,7 @@ const API_PREFIX := "/api/v1"
 const DEFAULT_API_KEY := "dev-api-key"
 const WS_PREFIX := "/api/v1/ws"
 const VOTE_PATH := "/api/v1/economy/vote"
-const REQUEST_TIMEOUT_S := 30.0
+var request_timeout_s := 30.0
 
 var base_url: String = DEFAULT_BASE_URL
 var api_key: String = DEFAULT_API_KEY
@@ -46,15 +46,19 @@ var audio_quality := "high"  # TTS quality param: "high" | "low"
 
 var _ws: WebSocketPeer
 var _ws_open := false
+var _ws_reconnect_pending := false
+var _ws_reconnect_delay_s := 5.0
+var _ws_intentional_close := false
 var _pending: Array[Dictionary] = []
 var _max_retries := 3
 var _retry_delay_s := 1.0
-var _retry: RetryHandler
+const RetryHandlerScript := preload("res://network/RetryHandler.gd")
+var _retry: RefCounted
 var _current_script_id := ""
 
 
 func _ready() -> void:
-	_retry = RetryHandler.new()
+	_retry = RetryHandlerScript.new()
 	_retry.max_retries = _max_retries
 	_retry.base_delay_s = _retry_delay_s
 	# In web builds, auto-detect the server URL from the page origin.
@@ -86,6 +90,7 @@ func _process(_delta: float) -> void:
 				_ws_open = false
 				ws_disconnected.emit()
 			_ws = null
+			_schedule_ws_reconnect()
 
 
 func _handle_ws_message(message: Dictionary) -> void:
@@ -97,7 +102,8 @@ func _handle_ws_message(message: Dictionary) -> void:
 
 
 func connect_ws() -> void:
-	if _ws != null:
+	_ws_intentional_close = false
+	if _ws != null or _ws_reconnect_pending:
 		return
 	var ws_url := _ws_url()
 	_ws = WebSocketPeer.new()
@@ -105,11 +111,26 @@ func connect_ws() -> void:
 	var err := _ws.connect_to_url(ws_url)
 	if err != OK:
 		_ws = null
-		script_failed.emit("WebSocket connect failed (code %d)" % err)
+		push_warning("WebSocket connect failed (code %d)" % err)
+		_schedule_ws_reconnect()
 		return
 
 
+func _schedule_ws_reconnect() -> void:
+	if _ws_intentional_close or not ws_enabled or _ws_reconnect_pending or _ws != null:
+		return
+	_ws_reconnect_pending = true
+	var timer := get_tree().create_timer(_ws_reconnect_delay_s)
+	timer.timeout.connect(func() -> void:
+		_ws_reconnect_pending = false
+		if not _ws_intentional_close and ws_enabled and _ws == null:
+			connect_ws()
+	)
+
+
 func disconnect_ws() -> void:
+	_ws_intentional_close = true
+	_ws_reconnect_pending = false
 	if _ws != null:
 		_ws.close()
 		_ws = null
@@ -223,13 +244,13 @@ func run_retention(dry_run: bool = false) -> void:
 ## Fire one request on its own HTTPRequest node (so parallel calls never clash).
 func _request(tag: String, url: String, method: HTTPClient.Method, body: String = "") -> void:
 	var http := HTTPRequest.new()
-	http.timeout = REQUEST_TIMEOUT_S
+	http.timeout = request_timeout_s
 	add_child(http)
 	http.request_completed.connect(
 		func(result: int, code: int, headers: PackedStringArray, res_body: PackedByteArray) -> void:
 			if result != HTTPRequest.RESULT_SUCCESS:
 				if _retry.register_failure(tag):
-					var delay := _retry.delay_for(tag)
+					var delay: float = _retry.delay_for(tag)
 					retry_scheduled.emit(tag, _retry.attempts_for(tag), delay)
 					http.queue_free()
 					_retry_after(tag, url, method, body, delay)
@@ -247,7 +268,7 @@ func _request(tag: String, url: String, method: HTTPClient.Method, body: String 
 	var err := http.request(url, _auth_headers(body != ""), method, body)
 	if err != OK:
 		if _retry.register_failure(tag):
-			var delay := _retry.delay_for(tag)
+			var delay: float = _retry.delay_for(tag)
 			retry_scheduled.emit(tag, _retry.attempts_for(tag), delay)
 			http.queue_free()
 			_retry_after(tag, url, method, body, delay)
@@ -346,7 +367,7 @@ func _download_audio_lines(lines: Array) -> void:
 
 func _download_audio(line_index: int, url: String) -> void:
 	var downloader := HTTPRequest.new()
-	downloader.timeout = REQUEST_TIMEOUT_S
+	downloader.timeout = request_timeout_s
 	add_child(downloader)
 	downloader.request_completed.connect(
 		func(result: int, code: int, _h: PackedStringArray, body: PackedByteArray) -> void:
@@ -365,7 +386,11 @@ func _download_audio(line_index: int, url: String) -> void:
 			audio_ready.emit(line_index, loaded)
 			downloader.queue_free()
 	)
-	var err := downloader.request(url)
+	# Godot's HTTP client cannot resolve "localhost" on this platform (it
+	# stalls on IPv6 ::1 while the server listens on 127.0.0.1), so rewrite
+	# any localhost host to the loopback IP before downloading audio.
+	var download_url := url.replace("://localhost", "://127.0.0.1").replace("://localhost:", "://127.0.0.1:")
+	var err := downloader.request(download_url)
 	if err != OK:
 		downloader.queue_free()
 		script_failed.emit("Audio request failed to start for line %d (code %d)" % [line_index, err])

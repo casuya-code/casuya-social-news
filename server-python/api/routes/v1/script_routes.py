@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from api.errors import InvalidInputError, NotFoundError, ScriptTimeoutError, TTSProviderError
+from api.websocket_server import broadcast_script
 from cache.redis_client import cache
 from config.logging_config import get_logger
 from config.settings import get_settings
@@ -106,7 +107,7 @@ class GenerateAudioRequest(BaseModel):
 @router.post("/generate", response_model=GenerateResponse)
 async def generate_script(payload: NewsInput) -> GenerateResponse:
     """Convert a news item into a dramatic script (cached by URL)."""
-    cache_key = f"script:{payload.url}"
+    cache_key = f"script:{payload.url}:{payload.direction}"
     cached = await cache.get(cache_key)
     if cached:
         return GenerateResponse(script=cached)
@@ -115,6 +116,7 @@ async def generate_script(payload: NewsInput) -> GenerateResponse:
     SCRIPTS_GENERATED.labels(direction=payload.direction).inc()
     await cache.set(cache_key, script)
     save_script(script)
+    await broadcast_script(script, {})
 
     # Persist article + script (best-effort; pipeline must not fail on DB hiccups).
     try:

@@ -11,12 +11,13 @@ extends Control
 @onready var data_check: CheckButton = %DataCheck
 @onready var close_button: Button = %SetCloseButton
 
-var settings: AppSettings
+const AppSettingsScript := preload("res://settings/AppSettings.gd")
+var settings
 
 
 func _ready() -> void:
-	low_button.pressed.connect(func() -> void: settings.set_quality(AppSettings.AudioQuality.LOW))
-	high_button.pressed.connect(func() -> void: settings.set_quality(AppSettings.AudioQuality.HIGH))
+	low_button.pressed.connect(func() -> void: settings.set_quality(AppSettingsScript.AudioQuality.LOW))
+	high_button.pressed.connect(func() -> void: settings.set_quality(AppSettingsScript.AudioQuality.HIGH))
 	notifications_check.toggled.connect(func(on: bool) -> void: settings.set_notifications(on))
 	data_check.toggled.connect(func(on: bool) -> void: settings.set_data_saving(on))
 	close_button.pressed.connect(_close)
@@ -28,7 +29,7 @@ func _ready() -> void:
 
 
 func _refresh() -> void:
-	var data_saving := settings.data_saving_enabled()
+	var data_saving: bool = settings.data_saving_enabled()
 	low_button.disabled = not settings.is_high_quality() or data_saving
 	high_button.disabled = settings.is_high_quality() or data_saving
 	notifications_check.set_pressed_no_signal(settings.notifications_enabled())

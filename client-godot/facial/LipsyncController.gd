@@ -3,9 +3,9 @@ extends Node
 ## Feature #7: Adaptive Lipsync.
 ##
 ## Drives a simple mouth-shape blend/texture based on audio amplitude and
-## phoneme analysis. Works with any 3D character that exposes a
-## `mouth_shape_index` property (via ShaderMaterial or blend shapes).
-## The controller listens to the active AudioStreamPlayer3D and updates
+## phoneme analysis. Works with any 2D/Control character that exposes a
+## `mouth_shape_index` property or `set_mouth_shape` method.
+## The controller listens to the active AudioStreamPlayer and updates
 ## the mouth target in real time.
 
 signal mouth_changed(character_id: String, shape: int)
@@ -17,7 +17,7 @@ const PhonemeAnalyzerClass := preload("res://facial/PhonemeAnalyzer.gd")
 
 var _analyzer: RefCounted
 var _character_id: String
-var _mouth_node: Node3D
+var _mouth_node: Node
 var _sample_window: Array = []
 var _current_shape := 0
 var _smoothed_amplitude := 0.0
@@ -31,14 +31,14 @@ func _ready() -> void:
 	_analyzer_ready = true
 
 
-func setup(character_id: String, mouth_node: Node3D) -> void:
+func setup(character_id: String, mouth_node: Node) -> void:
 	_character_id = character_id
 	_mouth_node = mouth_node
 
 
 ## Drive lipsync from the raw amplitude of the playing audio stream. Call
 ## every frame from the parent character or main scene.
-func update_from_amplitude(player: AudioStreamPlayer3D) -> void:
+func update_from_amplitude(player: AudioStreamPlayer) -> void:
 	if player == null or not player.playing:
 		_set_shape(0)
 		return
@@ -92,7 +92,7 @@ func _phoneme_to_shape(phoneme: String) -> int:
 			return 0
 
 
-func _player_amplitude(player: AudioStreamPlayer3D) -> float:
+func _player_amplitude(player: AudioStreamPlayer) -> float:
 	if player.stream == null or not player.stream is AudioStreamWAV:
 		return 0.0
 	# Approximate amplitude from volume_db (linear).

@@ -1,8 +1,8 @@
 extends SceneTree
-## Headless test for CharacterController and character subsystems integration:
-## Verifies that CharacterController properly initialises all 11 subsystems,
-## handles line start/finish events, switches age profiles (gait),
-## and manages eye gaze/facial state without errors.
+## Headless test for CharacterController and character subsystems integration (2D):
+## Verifies that CharacterController properly initialises all subsystems,
+## handles line start/finish events, switches age profiles, and exercises
+## eye gaze without errors.
 
 const CHARACTER_CONTROLLER_SCRIPT := preload("res://characters/CharacterController.gd")
 
@@ -15,16 +15,16 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 
-	var ctrl: Node3D = CHARACTER_CONTROLLER_SCRIPT.new()
+	var ctrl: Node2D = CHARACTER_CONTROLLER_SCRIPT.new()
 	root.add_child(ctrl)
 
-	var body := Node3D.new()
+	var body := Node2D.new()
 	root.add_child(body)
-	var head := Node3D.new()
+	var head := Node2D.new()
 	root.add_child(head)
-	var left_eye := Node3D.new()
+	var left_eye := Node2D.new()
 	root.add_child(left_eye)
-	var right_eye := Node3D.new()
+	var right_eye := Node2D.new()
 	root.add_child(right_eye)
 
 	var ready_signaled: Array[String] = []
@@ -32,7 +32,6 @@ func _run() -> void:
 		ready_signaled.append(id)
 	)
 
-	# 1. Setup controller with dummy 3D nodes
 	ctrl.setup("char_mjomba", body, head, left_eye, right_eye)
 
 	if ready_signaled.is_empty():
@@ -43,7 +42,6 @@ func _run() -> void:
 		_fail("Subsystems not properly instantiated in CharacterController")
 		return
 
-	# 2. Test age transition (gait biomechanics)
 	ctrl.set_age("zee")
 	if ctrl.gait.get_speed() > 1.5:
 		_fail("Elderly gait speed should be <= 1.5")
@@ -54,7 +52,6 @@ func _run() -> void:
 		_fail("Youth gait speed should be >= 2.0")
 		return
 
-	# 3. Test line started/finished lifecycle
 	var speaking_events: Array[bool] = []
 	ctrl.character_speaking.connect(func(_id: String, is_speaking: bool) -> void:
 		speaking_events.append(is_speaking)
@@ -67,15 +64,13 @@ func _run() -> void:
 		_fail("Speaking event sequence mismatch: %s" % str(speaking_events))
 		return
 
-	# 4. Test EyeGazeSystem target tracking
-	var target := Node3D.new()
+	var target := Node2D.new()
 	root.add_child(target)
-	target.global_position = Vector3(3, 1, -2)
+	target.global_position = Vector2(30, 10)
 	ctrl.eye_gaze.set_target(target)
 	ctrl.eye_gaze._process(0.016)
 
-	# 5. Test dynamic auto-initialization (main.gd registration pattern)
-	var dynamic_ctrl: Node3D = CHARACTER_CONTROLLER_SCRIPT.new()
+	var dynamic_ctrl: Node2D = CHARACTER_CONTROLLER_SCRIPT.new()
 	dynamic_ctrl.character_id = "char_shangazi"
 	root.add_child(dynamic_ctrl)
 	if dynamic_ctrl.lipsync == null or dynamic_ctrl.gait == null or dynamic_ctrl.cloth_wear == null:
@@ -85,7 +80,6 @@ func _run() -> void:
 	dynamic_ctrl.on_line_finished()
 	dynamic_ctrl.queue_free()
 
-	# Clean up
 	ctrl.queue_free()
 	body.queue_free()
 	head.queue_free()

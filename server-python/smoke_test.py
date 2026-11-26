@@ -9,7 +9,7 @@ from main import app
 
 async def main() -> None:
     transport = httpx.ASGITransport(app=app)
-    headers = {"X-API-Key": "test-key"}
+    headers = {"X-API-Key": "dev-api-key"}
 
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         # 1. Root
@@ -32,7 +32,8 @@ async def main() -> None:
         )
         print("generate:", r.status_code)
         body = r.json()
-        script = body["script"]
+        data = body.get("data", body) if isinstance(body, dict) else body
+        script = data["script"] if isinstance(data, dict) and "script" in data else body["script"]
         print("  script_id:", script["script_id"])
         print("  lines:", len(script["lines"]))
         for line in script["lines"]:
@@ -54,7 +55,8 @@ async def main() -> None:
         )
         print("generate-audio:", r.status_code)
         body = r.json()
-        for line in body["lines"]:
+        data = body.get("data", body) if isinstance(body, dict) else body
+        for line in data["lines"]:
             print("   audio_url:", line["audio_url"])
 
         # 5. Health (DB will be 'down' but endpoint should respond)

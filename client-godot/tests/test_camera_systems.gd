@@ -1,7 +1,6 @@
 extends SceneTree
-## Headless test for ProceduralCamera, ShotComposer, and BeatTracker:
-## Verifies shot switching, 3D target look-at tracking, Camera3D target lead look-at,
-## and beat tracker pacing transitions.
+## Headless test for ProceduralCamera, ShotComposer, and BeatTracker (2D):
+## Verifies shot switching, 2D target tracking, and beat tracker pacing.
 
 const CAMERA_SCRIPT := preload("res://camera/ProceduralCamera.gd")
 const SHOT_COMPOSER_SCRIPT := preload("res://camera/ShotComposer.gd")
@@ -16,7 +15,6 @@ func _run() -> void:
 	await process_frame
 	await process_frame
 
-	# 1. BeatTracker tests
 	var beat_tracker: Node = BEAT_TRACKER_SCRIPT.new()
 	root.add_child(beat_tracker)
 	var mock_script := {
@@ -31,21 +29,19 @@ func _run() -> void:
 	beat_tracker.advance_line(0)
 	beat_tracker.advance_line(1)
 
-	# 2. ShotComposer tests
 	var shot_composer: Node = SHOT_COMPOSER_SCRIPT.new()
 	root.add_child(shot_composer)
 	shot_composer.setup(beat_tracker)
 	shot_composer.set_active_characters(2)
 
-	# 3. ProceduralCamera target tracking tests
-	var cam: Node3D = CAMERA_SCRIPT.new()
+	var cam: Node2D = CAMERA_SCRIPT.new()
 	root.add_child(cam)
 
-	var target_3d := Node3D.new()
-	root.add_child(target_3d)
-	target_3d.global_position = Vector3(5, 0, 5)
+	var target_2d := Node2D.new()
+	root.add_child(target_2d)
+	target_2d.global_position = Vector2(50, 50)
 
-	cam.set_target(target_3d)
+	cam.set_target(target_2d)
 	cam.switch_to_wide()
 	cam._process(0.016)
 
@@ -53,7 +49,7 @@ func _run() -> void:
 		_fail("Current shot should be wide (0)")
 		return
 
-	var wide_pos: Vector3 = cam.global_position
+	var wide_pos: Vector2 = cam.global_position
 
 	cam.switch_to_closeup()
 	cam._process(0.016)
@@ -62,22 +58,12 @@ func _run() -> void:
 		_fail("Current shot should be closeup (1)")
 		return
 
-	var closeup_pos: Vector3 = cam.global_position
+	var closeup_pos: Vector2 = cam.global_position
 	if wide_pos == closeup_pos:
 		_fail("Wide and closeup camera positions should differ")
 		return
 
-	# 4. Camera3D target testing (testing the formerly no-op branch)
-	var cam_target := Camera3D.new()
-	root.add_child(cam_target)
-	cam_target.global_position = Vector3(10, 0, 10)
-
-	cam.set_target(cam_target)
-	cam._process(0.016)
-
-	# Clean up
-	target_3d.queue_free()
-	cam_target.queue_free()
+	target_2d.queue_free()
 	cam.queue_free()
 	shot_composer.queue_free()
 	beat_tracker.queue_free()

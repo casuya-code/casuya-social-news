@@ -1,5 +1,5 @@
 class_name CharacterController
-extends Node3D
+extends Node2D
 ## Integration hub for all character subsystems. Wires together facial
 ## (lipsync, eye gaze, blink), animation (locomotion, idle, gestures),
 ## and appearance (texture swap, cloth wear) for a single character.
@@ -42,7 +42,7 @@ func _ready() -> void:
 		setup(character_id, self)
 
 
-func setup(id: String, body: Node3D, head: Node3D = null, left_eye: Node3D = null, right_eye: Node3D = null, left_leg: SkeletonIK3D = null, right_leg: SkeletonIK3D = null, clothing_mat: Material = null, mesh: MeshInstance3D = null) -> void:
+func setup(id: String, body: Node2D, head: Node2D = null, left_eye: Node2D = null, right_eye: Node2D = null, left_leg: Node = null, right_leg: Node = null, clothing_mat: Material = null, mesh: Node2D = null) -> void:
 	character_id = id
 
 	if lipsync == null:

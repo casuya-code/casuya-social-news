@@ -26,7 +26,4 @@ func trigger(haptic_type: HapticType = HapticType.LIGHT) -> void:
 
 
 func _vibrate(duration_ms: int) -> void:
-	if Input.vibrate_handheld(duration_ms):
-		return
-	# Fallback for older Godot versions
 	Input.vibrate_handheld(duration_ms / 1000.0)

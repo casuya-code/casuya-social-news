@@ -1,17 +1,15 @@
 class_name ProceduralCamera
-extends Node3D
-## Feature #12: Procedural Camera (Kamera ya Kisanii).
+extends Node2D
+## Feature #12: Procedural Camera (Kamera ya Kisanii) - 2D.
 ##
-## Drives a3D camera based on the ShotComposer's cinematic decisions.
-## Reads shot type from the ShotComposer to position the camera
+## Drives a 2D camera based on cinematic decisions. Positions/zooms the camera
 ## (wide / medium / close-up / over-shoulder / cutaway) and smoothly
-## transitions between positions. Falls back to autonomous wide/close-up
-## cycling when no ShotComposer is connected.
+## transitions between states.
 
 signal shot_changed(shot_type: int, shot_name: String)
 
 @export_group("Camera Settings")
-@export var target_node: Node3D = null
+@export var target_node: Node2D = null
 @export var shot_distance: float = 10.0
 @export var close_up_distance: float = 3.0
 @export var medium_distance: float = 7.0
@@ -33,20 +31,14 @@ func _ready() -> void:
 
 
 func setup_composer(shot_composer: Node) -> void:
-	"""Connect to a ShotComposer to drive camera positions."""
 	_shot_composer = shot_composer
-	if _shot_composer != null and _shot_composer.has_signal("shot_changed"):
-		_pass  # ShotComposer doesn't emit shot_changed yet; we poll.
 
 
 func _physics_process(delta: float) -> void:
-	# If connected to a ShotComposer, read its current shot instead of
-	# independent cycling.
 	if _shot_composer != null:
 		var composer_shot: int = _shot_composer.get_current_shot()
 		_match_composer_shot(composer_shot)
 	else:
-		# Autonomous fallback: cycle wide ↔ close-up.
 		shot_timer -= delta
 		if shot_timer <= 0.0:
 			current_shot = (current_shot + 1) % 2
@@ -60,7 +52,6 @@ func _physics_process(delta: float) -> void:
 
 
 func _match_composer_shot(composer_shot: int) -> void:
-	"""Map a ShotComposer ShotType enum to camera distance + height."""
 	var ShotType = preload("res://camera/ShotComposer.gd").ShotType
 	var prev := current_shot
 	match composer_shot:
@@ -88,7 +79,7 @@ func _match_composer_shot(composer_shot: int) -> void:
 		shot_changed.emit(current_shot, get_shot_name(current_shot))
 
 
-func set_target(node: Node3D) -> void:
+func set_target(node: Node2D) -> void:
 	target_node = node
 
 
@@ -113,17 +104,7 @@ func get_shot_name(shot: int) -> String:
 
 
 func _process(delta: float) -> void:
-	# Smoothly interpolate toward the target distance.
 	shot_distance = lerpf(shot_distance, _target_distance, delta * transition_speed)
-
 	if target_node != null and target_node.is_inside_tree():
-		var cam_pos := target_node.global_position + Vector3(0, _target_height, -shot_distance)
+		var cam_pos := target_node.global_position + Vector2(0, -_target_height * 10.0)
 		global_position = global_position.lerp(cam_pos, delta * transition_speed)
-
-		# Look at target.
-		var target_pos: Vector3 = target_node.global_position
-		if target_node is Camera3D:
-			var forward: Vector3 = -target_node.global_transform.basis.z
-			look_at(target_pos + forward * 2.0 + Vector3(0, 1, 0))
-		else:
-			look_at(target_pos + Vector3(0, 1, 0))

@@ -66,7 +66,8 @@ var _offline: Node
 var _spatial: Node
 var _occlusion: Node
 var _cache: Node
-var _settings: AppSettings
+const AppSettingsScript := preload("res://settings/AppSettings.gd")
+var _settings
 var _settings_open := false
 var _weather_mood := 0.0
 # Camera systems (Features #12, #13)
@@ -142,7 +143,7 @@ func _build_feedback_layers() -> void:
 	_crowd_generator.name = "CrowdGenerator"
 	add_child(_crowd_generator)
 
-	_settings = AppSettings.new()
+	_settings = AppSettingsScript.new()
 	_settings.load_settings()
 	_settings.changed.connect(_on_settings_changed)
 	_apply_settings()
@@ -230,8 +231,8 @@ func _on_settings_changed() -> void:
 
 func _apply_settings() -> void:
 	# Data saving forces low quality; otherwise honour the explicit choice.
-	var effective := AppSettings.AudioQuality.LOW if _settings.data_saving_enabled() else _settings.get_quality()
-	Network.audio_quality = "low" if effective == AppSettings.AudioQuality.LOW else "high"
+	var effective = AppSettingsScript.AudioQuality.LOW if _settings.data_saving_enabled() else _settings.get_quality()
+	Network.audio_quality = "low" if effective == AppSettingsScript.AudioQuality.LOW else "high"
 
 
 func _on_ws_connected() -> void:

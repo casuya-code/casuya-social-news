@@ -1,31 +1,29 @@
 class_name CulturalGesture
 extends Node
-## Feature #20: African Gestures.
+## Feature #20: African Gestures (2D).
 ##
-## Cultural gesture library — maps emotion/conversation contexts to
-## culturally appropriate body gestures (e.g., hand-on-chest greeting,
-## open-palm emphasis, head-shake disagreement). Gestures are played as
-## procedural animations by scaling/rotating limb nodes.
+## Maps emotion/conversation contexts to culturally appropriate body gestures.
+## Gestures are played as simple 2D rotations on limb nodes.
 
 const GESTURES := {
 	"welcome": {
-		"hand_right": {"rotation": Vector3(0, 0, -0.5), "duration": 1.2},
-		"nod": {"rotation": Vector3(-0.3, 0, 0), "duration": 0.8},
+		"hand_right": {"rotation": -0.5, "duration": 1.2},
+		"nod": {"rotation": -0.3, "duration": 0.8},
 	},
 	"emphasis": {
-		"hand_right": {"rotation": Vector3(0.5, 0, -0.3), "duration": 0.5},
-		"lean_forward": {"rotation": Vector3(-0.1, 0, 0), "duration": 0.6},
+		"hand_right": {"rotation": 0.5, "duration": 0.5},
+		"lean_forward": {"rotation": -0.1, "duration": 0.6},
 	},
 	"disagreement": {
-		"head_shake": {"rotation": Vector3(0, 0.4, 0), "duration": 1.0, "repeats": 3},
+		"head_shake": {"rotation": 0.4, "duration": 1.0, "repeats": 3},
 	},
 	"praise": {
-		"hand_left": {"rotation": Vector3(0, 0, 0.3), "duration": 0.8},
-		"lean_back": {"rotation": Vector3(0.1, 0, 0), "duration": 0.8},
+		"hand_left": {"rotation": 0.3, "duration": 0.8},
+		"lean_back": {"rotation": 0.1, "duration": 0.8},
 	},
 	"mourning": {
-		"head_bow": {"rotation": Vector3(0.4, 0, 0), "duration": 2.0},
-		"hand_right": {"rotation": Vector3(-0.3, 0, 0.2), "duration": 2.0},
+		"head_bow": {"rotation": 0.4, "duration": 2.0},
+		"hand_right": {"rotation": -0.3, "duration": 2.0},
 	},
 }
 
@@ -41,8 +39,8 @@ func setup(character_id: String, nodes: Dictionary) -> void:
 	_character_id = character_id
 	_nodes = nodes
 	for key: String in _nodes:
-		var node: Node3D = _nodes[key]
-		if node != null:
+		var node: Node = _nodes[key]
+		if node != null and "rotation" in node:
 			_rest_positions[key] = node.rotation
 
 
@@ -78,21 +76,21 @@ func _process(delta: float) -> void:
 		return
 	var gesture: Dictionary = GESTURES[_current_gesture]
 	var progress := _gesture_timer / _gesture_duration
-	var ease := sin(progress * PI)  # smooth rise and fall
+	var ease := sin(progress * PI)
 	for key: String in gesture:
 		if not _nodes.has(key):
 			continue
-		var node: Node3D = _nodes[key]
-		if node == null:
+		var node: Node = _nodes[key]
+		if node == null or not ("rotation" in node):
 			continue
-		var target_rot: Vector3 = gesture[key].get("rotation", Vector3.ZERO)
-		var repeats: int = gesture[key].get("repeats", 1)
+		var target_rot: float = float(gesture[key].get("rotation", 0.0))
+		var repeats: int = int(gesture[key].get("repeats", 1))
 		var wave := sin(progress * PI * repeats)
-		node.rotation = _rest_positions.get(key, Vector3.ZERO) + target_rot * ease * wave
+		node.rotation = float(_rest_positions.get(key, 0.0)) + target_rot * ease * wave
 
 
 func _apply_rest() -> void:
 	for key: String in _nodes:
-		var node: Node3D = _nodes[key]
-		if node != null and _rest_positions.has(key):
-			node.rotation = _rest_positions[key]
+		var node: Node = _nodes[key]
+		if node != null and _rest_positions.has(key) and "rotation" in node:
+			node.rotation = float(_rest_positions[key])

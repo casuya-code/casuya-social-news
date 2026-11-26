@@ -17,14 +17,14 @@ const DART_INTERVAL_MAX := 0.22
 const DART_DAMPING := 0.85
 
 var _character_id: String
-var _eye_node: Node3D
+var _eye_node: Node2D
 var _active := false
 var _dart_timer := 0.0
 var _dart_offset := Vector2.ZERO
 var _target_offset := Vector2.ZERO
 
 
-func setup(character_id: String, eye_node: Node3D) -> void:
+func setup(character_id: String, eye_node: Node2D) -> void:
 	_character_id = character_id
 	_eye_node = eye_node
 
@@ -65,5 +65,5 @@ func _apply(offset: Vector2) -> void:
 	if _eye_node != null and _eye_node.has_method("set_eye_offset"):
 		_eye_node.set_eye_offset(offset)
 	elif _eye_node != null:
-		_eye_node.rotation.y += offset.x * 0.1
-		_eye_node.rotation.x += offset.y * 0.1
+		_eye_node.rotation += offset.x * 0.1
+		_eye_node.position += offset * 2.0

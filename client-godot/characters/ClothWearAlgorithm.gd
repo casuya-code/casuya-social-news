@@ -1,11 +1,6 @@
 class_name ClothWearAlgorithm
 extends Node
-## Feature #28: Aging Clothing (Mavazi Yanayozeeka).
-##
-## Simulates clothes aging/wearing over the course of a story. Drives
-## shader parameters on the character's clothing material: dirt overlay,
-## colour fade, wrinkle intensity. Increases progressively as the story
-## reaches its climax, giving visual weight to the drama's progression.
+## Feature #28: Aging Clothing (Mavazi Yanayozeeka) - 2D.
 
 signal cloth_wear_changed(character_id: String, wear: float)
 
@@ -59,9 +54,7 @@ func _apply_wear() -> void:
 	if _clothing_material == null:
 		return
 	var fade := 1.0 - _wear * 0.3
-	if _clothing_material is StandardMaterial3D:
-		_clothing_material.albedo_color = Color(fade, fade, fade, 1.0)
-	elif _clothing_material is ShaderMaterial:
+	if _clothing_material is ShaderMaterial:
 		if _clothing_material.has_shader_parameter("dirt"):
 			_clothing_material.set_shader_parameter("dirt", _wear)
 		if _clothing_material.has_shader_parameter("wrinkle"):

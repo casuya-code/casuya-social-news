@@ -27,9 +27,9 @@ func _run() -> void:
 		_fail("expected 2 toasts, got %d" % toasts.get_child_count())
 		return
 
-	var first: ToastNotification = toasts.get_child(0)
-	if not (first is ToastNotification):
-		_fail("toast children are not ToastNotification")
+	var first: Node = toasts.get_child(0)
+	if not first.has_method("set_lifetime"):
+		_fail("toast children are not ToastNotification instances")
 		return
 	if first.get_child_count() == 0 or not (first.get_child(0) is Label):
 		_fail("toast missing label")
